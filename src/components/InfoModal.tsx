@@ -39,9 +39,9 @@ export function InfoModal() {
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-md text-left">
           <DialogHeader>
-            <DialogTitle className="uppercase text-primary text-left">About This Tool</DialogTitle>
+            <DialogTitle className="uppercase text-primary text-left">CMYK Halftone Emulator</DialogTitle>
             <DialogDescription>
-              Information about the halftone printing emulator tool, credits, and attribution.
+              This minitool was created for the 2025 Figma Make-a-thon event.
             </DialogDescription>
           </DialogHeader>
           
