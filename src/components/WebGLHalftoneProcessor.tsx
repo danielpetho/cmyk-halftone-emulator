@@ -15,7 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import { Download, Trash2 } from "lucide-react";
+import { Download, Trash2, Play, Pause, SkipBack, SkipForward } from "lucide-react";
 import { ImageUpload } from "./ImageUpload";
 import { Knob } from "./ui/knob";
 import { ColorPicker } from "./ui/color-picker";
@@ -24,6 +24,7 @@ import { useIsMobile } from "./ui/use-mobile";
 interface WebGLHalftoneProcessorProps {
   imageFile: File | null;
   onReset: () => void;
+  isVideo?: boolean;
 }
 
 export interface WebGLHalftoneProcessorReturn {
@@ -335,15 +336,18 @@ void main() {
 export function WebGLHalftoneProcessor({
   imageFile,
   onReset,
+  isVideo = false,
 }: WebGLHalftoneProcessorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const glRef = useRef<WebGLRenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
   const textureRef = useRef<WebGLTexture | null>(null);
   const uniformsRef = useRef<{
     [key: string]: WebGLUniformLocation | null;
   }>({});
+  const renderRef = useRef<(() => void) | null>(null);
 
   const [frequency, setFrequency] = useState([85]);
   const [dotSize, setDotSize] = useState([1.0]);
@@ -459,6 +463,12 @@ export function WebGLHalftoneProcessor({
     height: 0,
   });
 
+  // Video controls state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState([1.0]);
+
   // No need for individual dot size updates in this shader approach
 
   // Helper function to create and compile shader
@@ -529,6 +539,59 @@ export function WebGLHalftoneProcessor({
     },
     [],
   );
+
+  // Video control functions
+  const togglePlayPause = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !isVideo) return;
+
+    if (isPlaying) {
+      video.pause();
+      setIsPlaying(false);
+    } else {
+      video.play().catch((e) => console.error("Video play error:", e));
+      setIsPlaying(true);
+    }
+  }, [isVideo, isPlaying]);
+
+  const handleSeek = useCallback((value: number[]) => {
+    const video = videoRef.current;
+    if (!video || !isVideo) return;
+    
+    const newTime = value[0];
+    video.currentTime = newTime;
+    setVideoProgress(newTime);
+  }, [isVideo]);
+
+  const handleSpeedChange = useCallback((value: number[]) => {
+    const video = videoRef.current;
+    if (!video || !isVideo) return;
+    
+    video.playbackRate = value[0];
+    setPlaybackSpeed(value);
+  }, [isVideo]);
+
+  const skipBackward = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !isVideo) return;
+    
+    video.currentTime = Math.max(0, video.currentTime - 5);
+  }, [isVideo]);
+
+  const skipForward = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !isVideo) return;
+    
+    video.currentTime = Math.min(video.duration, video.currentTime + 5);
+  }, [isVideo]);
+
+  // Format time in MM:SS format
+  const formatTime = (seconds: number): string => {
+    if (isNaN(seconds)) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Initialize WebGL
   useEffect(() => {
@@ -954,36 +1017,21 @@ export function WebGLHalftoneProcessor({
     hexToRgba,
   ]);
 
-  // Load image and create texture
+  // Keep renderRef up to date with latest render function
+  useEffect(() => {
+    renderRef.current = render;
+  }, [render]);
+
+  // Load media (image or video) and create texture
   useEffect(() => {
     if (!imageFile || !glRef.current) {
       return;
     }
 
     const gl = glRef.current;
-    const img = new Image();
+    let animationFrameId: number | null = null;
 
-    img.onload = () => {
-      console.log("Image loaded:", img.width, "x", img.height);
-
-      // Calculate dimensions - increased for better output quality
-      const maxDimension = 600;
-      let { width, height } = img;
-
-      if (width > maxDimension || height > maxDimension) {
-        const scale = maxDimension / Math.max(width, height);
-        width *= scale;
-        height *= scale;
-      }
-
-      console.log(
-        "Source image dimensions:",
-        width,
-        "x",
-        height,
-      );
-      setImageSize({ width, height });
-
+    const setupTexture = (width: number, height: number) => {
       // Clean up old texture
       if (textureRef.current) {
         gl.deleteTexture(textureRef.current);
@@ -993,123 +1041,230 @@ export function WebGLHalftoneProcessor({
       const texture = gl.createTexture();
       if (!texture) {
         console.error("Failed to create texture");
-        return;
+        return null;
       }
 
       gl.bindTexture(gl.TEXTURE_2D, texture);
 
       // Set texture parameters
-      gl.texParameteri(
-        gl.TEXTURE_2D,
-        gl.TEXTURE_WRAP_S,
-        gl.CLAMP_TO_EDGE,
-      );
-      gl.texParameteri(
-        gl.TEXTURE_2D,
-        gl.TEXTURE_WRAP_T,
-        gl.CLAMP_TO_EDGE,
-      );
-      gl.texParameteri(
-        gl.TEXTURE_2D,
-        gl.TEXTURE_MIN_FILTER,
-        gl.LINEAR,
-      );
-      gl.texParameteri(
-        gl.TEXTURE_2D,
-        gl.TEXTURE_MAG_FILTER,
-        gl.LINEAR,
-      );
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-      // Upload image to texture
-      try {
-        gl.texImage2D(
-          gl.TEXTURE_2D,
-          0,
-          gl.RGBA,
-          gl.RGBA,
-          gl.UNSIGNED_BYTE,
-          img,
-        );
-        console.log("Texture created successfully");
+      return texture;
+    };
+
+    const fitCanvasToContainer = (width: number, height: number) => {
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (canvas && container) {
+        const styles = window.getComputedStyle(container);
+        const padX =
+          parseFloat(styles.paddingLeft || "0") +
+          parseFloat(styles.paddingRight || "0");
+        const padY =
+          parseFloat(styles.paddingTop || "0") +
+          parseFloat(styles.paddingBottom || "0");
+
+        const containerW = Math.max(1, (container.clientWidth || width) - padX);
+        const containerH = Math.max(1, (container.clientHeight || height) - padY);
+        const scale = Math.min(containerW / width, containerH / height);
+        const displayW = Math.max(1, Math.floor(width * scale));
+        const displayH = Math.max(1, Math.floor(height * scale));
+        const dpr = window.devicePixelRatio || 1;
+
+        // CSS size (display)
+        canvas.style.width = displayW + "px";
+        canvas.style.height = displayH + "px";
+        canvas.style.display = "block";
+
+        // Internal resolution for crisp output
+        canvas.width = Math.round(displayW * dpr);
+        canvas.height = Math.round(displayH * dpr);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+
+        // Use display size for shader aspect correction
+        setDimensions({
+          width: displayW,
+          height: displayH,
+        });
+      }
+    };
+
+    if (isVideo) {
+      // Video handling
+      const video = videoRef.current;
+      if (!video) {
+        console.error("Video ref not available");
+        return;
+      }
+
+      const url = URL.createObjectURL(imageFile);
+      console.log("Loading video from:", url);
+      
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "auto";
+      video.src = url; // Set src after other properties
+      video.load(); // Explicitly load the video
+
+      const handleLoadedMetadata = () => {
+        const { videoWidth, videoHeight } = video;
+        console.log("Video loaded:", videoWidth, "x", videoHeight);
+        setImageSize({ width: videoWidth, height: videoHeight });
+        setVideoDuration(video.duration);
+
+        const texture = setupTexture(videoWidth, videoHeight);
+        if (!texture) return;
 
         textureRef.current = texture;
+        fitCanvasToContainer(videoWidth, videoHeight);
 
-        // Fit canvas to container while preserving aspect ratio, then render
-        requestAnimationFrame(() => {
-          const canvas = canvasRef.current;
-          const container = containerRef.current;
-          if (canvas && container) {
-            const styles = window.getComputedStyle(container);
-            const padX =
-              parseFloat(styles.paddingLeft || "0") +
-              parseFloat(styles.paddingRight || "0");
-            const padY =
-              parseFloat(styles.paddingTop || "0") +
-              parseFloat(styles.paddingBottom || "0");
+        // Start video playback
+        video.play().catch((e) => console.error("Video play error:", e));
+        setIsPlaying(true);
 
-            const containerW = Math.max(
-              1,
-              (container.clientWidth || width) - padX,
-            );
-            const containerH = Math.max(
-              1,
-              (container.clientHeight || height) - padY,
-            );
-            const scale = Math.min(
-              containerW / width,
-              containerH / height,
-            );
-            const displayW = Math.max(
-              1,
-              Math.floor(width * scale),
-            );
-            const displayH = Math.max(
-              1,
-              Math.floor(height * scale),
-            );
-            const dpr = window.devicePixelRatio || 1;
-
-            // CSS size (display)
-            canvas.style.width = displayW + "px";
-            canvas.style.height = displayH + "px";
-            canvas.style.display = "block";
-
-            // Internal resolution for crisp output
-            canvas.width = Math.round(displayW * dpr);
-            canvas.height = Math.round(displayH * dpr);
-            gl.viewport(0, 0, canvas.width, canvas.height);
-
-            // Use display size for shader aspect correction
-            setDimensions({
-              width: displayW,
-              height: displayH,
-            });
+        // Animation loop to update texture and render
+        const updateVideo = () => {
+          if (video.readyState >= video.HAVE_CURRENT_DATA) {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            try {
+              gl.texImage2D(
+                gl.TEXTURE_2D,
+                0,
+                gl.RGBA,
+                gl.RGBA,
+                gl.UNSIGNED_BYTE,
+                video,
+              );
+              // Use renderRef to always get the latest render function
+              if (renderRef.current) {
+                renderRef.current();
+              }
+            } catch (error) {
+              console.error("Failed to update video texture:", error);
+            }
           }
+          animationFrameId = requestAnimationFrame(updateVideo);
+        };
 
-          render();
-        });
-      } catch (error) {
-        console.error("Failed to upload texture:", error);
-        gl.deleteTexture(texture);
-      }
-    };
+        updateVideo();
+      };
 
-    img.onerror = () => {
-      console.error("Failed to load image");
-    };
+      const handleTimeUpdate = () => {
+        if (!video.seeking) {
+          setVideoProgress(video.currentTime);
+        }
+      };
 
-    const url = URL.createObjectURL(imageFile);
-    img.src = url;
+      const handlePlay = () => {
+        setIsPlaying(true);
+      };
 
-    return () => {
-      URL.revokeObjectURL(url);
-      // Clean up texture when component unmounts or image changes
-      if (textureRef.current && glRef.current) {
-        glRef.current.deleteTexture(textureRef.current);
-        textureRef.current = null;
-      }
-    };
-  }, [imageFile, isMobile, glVersion]);
+      const handlePause = () => {
+        setIsPlaying(false);
+      };
+
+      const handleSeeked = () => {
+        setVideoProgress(video.currentTime);
+      };
+
+      const handleError = (e: ErrorEvent) => {
+        console.error("Video error:", e, video.error);
+      };
+
+      video.addEventListener("loadedmetadata", handleLoadedMetadata);
+      video.addEventListener("timeupdate", handleTimeUpdate);
+      video.addEventListener("play", handlePlay);
+      video.addEventListener("pause", handlePause);
+      video.addEventListener("seeked", handleSeeked);
+      video.addEventListener("error", handleError as any);
+
+      return () => {
+        if (animationFrameId !== null) {
+          cancelAnimationFrame(animationFrameId);
+        }
+        video.pause();
+        video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        video.removeEventListener("timeupdate", handleTimeUpdate);
+        video.removeEventListener("play", handlePlay);
+        video.removeEventListener("pause", handlePause);
+        video.removeEventListener("seeked", handleSeeked);
+        video.removeEventListener("error", handleError as any);
+        URL.revokeObjectURL(url);
+        if (textureRef.current && glRef.current) {
+          glRef.current.deleteTexture(textureRef.current);
+          textureRef.current = null;
+        }
+      };
+    } else {
+      // Image handling
+      const img = new Image();
+
+      img.onload = () => {
+        console.log("Image loaded:", img.width, "x", img.height);
+
+        // Calculate dimensions - increased for better output quality
+        const maxDimension = 600;
+        let { width, height } = img;
+
+        if (width > maxDimension || height > maxDimension) {
+          const scale = maxDimension / Math.max(width, height);
+          width *= scale;
+          height *= scale;
+        }
+
+        console.log("Source image dimensions:", width, "x", height);
+        setImageSize({ width, height });
+
+        const texture = setupTexture(width, height);
+        if (!texture) return;
+
+        // Upload image to texture
+        try {
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            img,
+          );
+          console.log("Texture created successfully");
+
+          textureRef.current = texture;
+
+          // Fit canvas to container while preserving aspect ratio, then render
+          requestAnimationFrame(() => {
+            fitCanvasToContainer(width, height);
+            render();
+          });
+        } catch (error) {
+          console.error("Failed to upload texture:", error);
+          gl.deleteTexture(texture);
+        }
+      };
+
+      img.onerror = () => {
+        console.error("Failed to load image");
+      };
+
+      const url = URL.createObjectURL(imageFile);
+      img.src = url;
+
+      return () => {
+        URL.revokeObjectURL(url);
+        if (textureRef.current && glRef.current) {
+          glRef.current.deleteTexture(textureRef.current);
+          textureRef.current = null;
+        }
+      };
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageFile, isVideo, isMobile, glVersion]);
 
   // Render when parameters change
   useEffect(() => {
@@ -1202,6 +1357,73 @@ export function WebGLHalftoneProcessor({
           onReset={onReset}
         />
       </div>
+
+      {/* Video Controls - only visible for videos */}
+      {isVideo && (
+        <div className="p-4 border-b border-border">
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={skipBackward}
+                title="Skip backward 5s"
+              >
+                <SkipBack className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="default"
+                size="icon"
+                onClick={togglePlayPause}
+                title={isPlaying ? "Pause" : "Play"}
+              >
+                {isPlaying ? (
+                  <Pause className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={skipForward}
+                title="Skip forward 5s"
+              >
+                <SkipForward className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{formatTime(videoProgress)}</span>
+                <span>{formatTime(videoDuration)}</span>
+              </div>
+              <Slider
+                value={[videoProgress]}
+                onValueChange={handleSeek}
+                max={videoDuration || 100}
+                step={0.1}
+                className="cursor-pointer"
+                disabled={!videoDuration}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">
+                Playback Speed: {playbackSpeed[0].toFixed(1)}x
+              </Label>
+              <Slider
+                value={playbackSpeed}
+                onValueChange={handleSpeedChange}
+                min={0.25}
+                max={2}
+                step={0.25}
+                className="cursor-pointer"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Original image in accordion - hidden on mobile */}
       <div className="hidden md:block border-b">
@@ -1551,7 +1773,7 @@ export function WebGLHalftoneProcessor({
           className="w-full bg-black text-white hover:bg-black/90 hover:scale-105 active:scale-95 transition-all duration-150 border-0 cursor-pointer"
         >
           <Download className="w-4 h-4 mr-2" />
-          Download Image
+          {isVideo ? "Download Current Frame" : "Download Image"}
         </Button>
       </div>
     </div>
@@ -1568,6 +1790,11 @@ export function WebGLHalftoneProcessor({
         style={{
           imageRendering: "auto",
         }}
+      />
+      {/* Hidden video element for video texture source */}
+      <video
+        ref={videoRef}
+        style={{ display: "none" }}
       />
     </div>
   );
@@ -1951,7 +2178,7 @@ export function WebGLHalftoneProcessor({
                 className="w-full bg-black text-white hover:bg-black/90 hover:scale-105 active:scale-95 transition-all duration-150 border-0 cursor-pointer"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Download Image
+                {isVideo ? "Download Current Frame" : "Download Image"}
               </Button>
             </div>
           </div>

@@ -1,10 +1,11 @@
-import { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import {
   Upload,
   Trash2,
   Image as ImageIcon,
+  Video,
 } from "lucide-react";
 
 interface ImageUploadProps {
@@ -25,14 +26,17 @@ export function ImageUpload({
       e.preventDefault();
       setIsDragOver(false);
 
-      const files = Array.from(e.dataTransfer.files);
-      const imageFile = files.find((file) =>
-        file.type.startsWith("image/"),
+      const files: File[] = Array.from(e.dataTransfer.files);
+      const mediaFile = files.find((file: File) =>
+        file.type.startsWith("image/") || file.type.startsWith("video/"),
       );
 
-      if (imageFile && imageFile.size <= 5 * 1024 * 1024) {
-        // 5MB limit
-        onImageUpload(imageFile);
+      if (mediaFile) {
+        // 5MB limit for images, 100MB for videos
+        const maxSize = mediaFile.type.startsWith("video/") ? 100 : 5;
+        if (mediaFile.size <= maxSize * 1024 * 1024) {
+          onImageUpload(mediaFile);
+        }
       }
     },
     [onImageUpload],
@@ -51,8 +55,12 @@ export function ImageUpload({
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file && file.size <= 5 * 1024 * 1024) {
-        onImageUpload(file);
+      if (file) {
+        // 5MB limit for images, 100MB for videos
+        const maxSize = file.type.startsWith("video/") ? 100 : 5;
+        if (file.size <= maxSize * 1024 * 1024) {
+          onImageUpload(file);
+        }
       }
       // Reset input
       e.target.value = "";
@@ -79,20 +87,20 @@ export function ImageUpload({
             </div>
             <div className="text-center">
               <p className="mb-2">
-                Drag and drop an image here
+                Drag and drop an image or video here
               </p>
               <p className="text-sm text-muted-foreground mb-4">
-                or click to browse (max 5MB)
+                or click to browse (Images: 5MB, Videos: 100MB max)
               </p>
               <Button asChild>
                 <label className="cursor-pointer">
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     onChange={handleFileSelect}
                     className="hidden"
                   />
-                  Choose Image
+                  Choose File
                 </label>
               </Button>
             </div>

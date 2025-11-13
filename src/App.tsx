@@ -1,36 +1,40 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { LandingPage } from "./components/LandingPage";
 import { WebGLHalftoneProcessor } from "./components/WebGLHalftoneProcessor";
 
 export default function App() {
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [isVideo, setIsVideo] = useState(false);
 
-  const handleImageUpload = (file: File) => {
-    setImageFile(file);
-    setImageUrl(URL.createObjectURL(file));
+  const handleMediaUpload = (file: File) => {
+    setMediaFile(file);
+    setMediaUrl(URL.createObjectURL(file));
+    setIsVideo(file.type.startsWith("video/"));
   };
 
   const handleReset = () => {
-    if (imageUrl) {
-      URL.revokeObjectURL(imageUrl);
+    if (mediaUrl) {
+      URL.revokeObjectURL(mediaUrl);
     }
-    setImageFile(null);
-    setImageUrl(null);
+    setMediaFile(null);
+    setMediaUrl(null);
+    setIsVideo(false);
   };
 
   return (
     <div className="h-screen w-screen bg-background overflow-hidden">
-      {!imageFile ? (
+      {!mediaFile ? (
         <LandingPage
-          onImageUpload={handleImageUpload}
-          uploadedImage={imageUrl}
+          onImageUpload={handleMediaUpload}
+          uploadedImage={mediaUrl}
           onReset={handleReset}
         />
       ) : (
         <WebGLHalftoneProcessor 
-          imageFile={imageFile}
+          imageFile={mediaFile}
           onReset={handleReset}
+          isVideo={isVideo}
         />
       )}
     </div>
