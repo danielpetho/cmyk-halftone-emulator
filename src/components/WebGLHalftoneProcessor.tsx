@@ -468,6 +468,9 @@ export function WebGLHalftoneProcessor({
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState([1.0]);
+  
+  // Separate URL for preview video
+  const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
 
   // No need for individual dot size updates in this shader approach
 
@@ -1022,6 +1025,21 @@ export function WebGLHalftoneProcessor({
     renderRef.current = render;
   }, [render]);
 
+  // Create separate URL for preview video
+  useEffect(() => {
+    if (imageFile && isVideo) {
+      const url = URL.createObjectURL(imageFile);
+      setPreviewVideoUrl(url);
+      
+      return () => {
+        URL.revokeObjectURL(url);
+        setPreviewVideoUrl(null);
+      };
+    } else {
+      setPreviewVideoUrl(null);
+    }
+  }, [imageFile, isVideo]);
+
   // Load media (image or video) and create texture
   useEffect(() => {
     if (!imageFile || !glRef.current) {
@@ -1347,15 +1365,9 @@ export function WebGLHalftoneProcessor({
   // Controls
   const controls = (
     <div className="h-screen flex flex-col">
-      {/* Upload section - always visible */}
+      {/* Title section */}
       <div className="p-4 border-b border-border">
-        <ImageUpload
-          onImageUpload={onReset}
-          uploadedImage={
-            imageFile ? URL.createObjectURL(imageFile) : null
-          }
-          onReset={onReset}
-        />
+        <h2 className="text-lg font-semibold uppercase text-center">Halftone Controls</h2>
       </div>
 
       {/* Video Controls - only visible for videos */}
@@ -1433,16 +1445,28 @@ export function WebGLHalftoneProcessor({
             className="px-4"
           >
             <AccordionTrigger className="text-lg uppercase items-center">
-              Original Image
+              Original {isVideo ? "Video" : "Image"}
             </AccordionTrigger>
             <AccordionContent>
               <div className="pt-2 pb-6">
                 {imageFile && (
-                  <img
-                    src={URL.createObjectURL(imageFile)}
-                    alt="Original"
-                    className="w-32 h-32 object-cover rounded border border-border mx-auto"
-                  />
+                  isVideo && previewVideoUrl ? (
+                    <video
+                      key={previewVideoUrl}
+                      src={previewVideoUrl}
+                      className="w-full h-auto max-h-48 object-contain rounded border border-border mx-auto"
+                      controls
+                      muted={false}
+                      loop
+                      preload="metadata"
+                    />
+                  ) : !isVideo ? (
+                    <img
+                      src={URL.createObjectURL(imageFile)}
+                      alt="Original"
+                      className="w-32 h-32 object-cover rounded border border-border mx-auto"
+                    />
+                  ) : null
                 )}
               </div>
             </AccordionContent>
@@ -1472,14 +1496,14 @@ export function WebGLHalftoneProcessor({
               <div className="space-y-4 pt-2 pb-6">
                 <div className="space-y-2">
                   <Label className="text-sm">
-                    Contrast: {contrast[0].toFixed(1)}
+                    Contrast: {contrast[0].toFixed(2)}
                   </Label>
                   <Slider
                     value={contrast}
                     onValueChange={setContrast}
                     min={0.3}
                     max={2.0}
-                    step={0.1}
+                    step={0.01}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1766,8 +1790,16 @@ export function WebGLHalftoneProcessor({
         </Accordion>
       </div>
 
-      {/* Desktop: Download button only */}
-      <div className="hidden md:block p-4 border-t border-border">
+      {/* Desktop: Reset and Download buttons */}
+      <div className="hidden md:block p-4 border-t border-border space-y-2">
+        <Button
+          variant="outline"
+          onClick={onReset}
+          className="w-full cursor-pointer"
+        >
+          <Trash2 className="w-4 h-4 mr-2" />
+          Reset
+        </Button>
         <Button
           onClick={handleDownload}
           className="w-full bg-black text-white hover:bg-black/90 hover:scale-105 active:scale-95 transition-all duration-150 border-0 cursor-pointer"
@@ -1814,19 +1846,6 @@ export function WebGLHalftoneProcessor({
             {/* Scrollable controls content */}
             <div className="flex-1 overflow-y-auto min-h-0">
               <div className="h-full flex flex-col">
-                {/* Upload section - hidden on mobile when image uploaded */}
-                <div className="hidden md:block p-4 border-b border-border">
-                  <ImageUpload
-                    onImageUpload={onReset}
-                    uploadedImage={
-                      imageFile
-                        ? URL.createObjectURL(imageFile)
-                        : null
-                    }
-                    onReset={onReset}
-                  />
-                </div>
-
                 {/* Scrollable accordion controls */}
                 <div className="flex-1 overflow-y-auto min-h-0">
                   <Accordion
@@ -1849,14 +1868,14 @@ export function WebGLHalftoneProcessor({
                         <div className="space-y-4 pt-2 pb-6">
                           <div className="space-y-2">
                             <Label className="text-sm">
-                              Contrast: {contrast[0].toFixed(1)}
+                              Contrast: {contrast[0].toFixed(2)}
                             </Label>
                             <Slider
                               value={contrast}
                               onValueChange={setContrast}
                               min={0.3}
                               max={2.0}
-                              step={0.1}
+                              step={0.01}
                             />
                           </div>
                           <div className="space-y-2">
