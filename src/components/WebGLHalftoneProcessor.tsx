@@ -15,7 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import { Download, Trash2, Play, Pause, SkipBack, SkipForward } from "lucide-react";
+import { Download, Trash2, Play, Pause, SkipBack, SkipForward, Circle, Square } from "lucide-react";
 import { ImageUpload } from "./ImageUpload";
 import { Knob } from "./ui/knob";
 import { ColorPicker } from "./ui/color-picker";
@@ -471,6 +471,11 @@ export function WebGLHalftoneProcessor({
   
   // Separate URL for preview video
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
+  
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   // No need for individual dot size updates in this shader approach
 
@@ -587,6 +592,85 @@ export function WebGLHalftoneProcessor({
     
     video.currentTime = Math.min(video.duration, video.currentTime + 5);
   }, [isVideo]);
+
+  // Recording functions
+  const startRecording = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !isVideo) return;
+
+    try {
+      // Get canvas stream at 60 fps for smoother recording
+      const stream = canvas.captureStream(60);
+      
+      // High quality recording options
+      let mediaRecorder: MediaRecorder;
+      const bitrate = 25000000; // 25 Mbps for high quality
+      
+      // Try different codecs in order of preference
+      const codecOptions = [
+        { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: bitrate },
+        { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: bitrate },
+        { mimeType: 'video/webm', videoBitsPerSecond: bitrate },
+      ];
+      
+      let selectedCodec: { mimeType: string; videoBitsPerSecond: number } | null = null;
+      for (const option of codecOptions) {
+        if (MediaRecorder.isTypeSupported(option.mimeType)) {
+          selectedCodec = option;
+          break;
+        }
+      }
+      
+      if (selectedCodec) {
+        mediaRecorder = new MediaRecorder(stream, selectedCodec);
+        console.log("Recording with:", selectedCodec.mimeType);
+      } else {
+        mediaRecorder = new MediaRecorder(stream);
+        console.log("Recording with default codec");
+      }
+      
+      recordedChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `halftone_video_${Date.now()}.webm`;
+        link.click();
+        URL.revokeObjectURL(url);
+        recordedChunksRef.current = [];
+        
+        console.log("Recording saved! To convert to MP4, use a tool like FFmpeg or online converter.");
+      };
+      
+      mediaRecorder.start(1000); // Collect data every second
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+      console.log("High quality recording started at 60fps, 25Mbps");
+    } catch (error) {
+      console.error("Failed to start recording:", error);
+    }
+  }, [isVideo]);
+
+  const stopRecording = useCallback(() => {
+    const mediaRecorder = mediaRecorderRef.current;
+    if (!mediaRecorder) return;
+    
+    if (mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      console.log("Recording stopped");
+    }
+    
+    mediaRecorderRef.current = null;
+    setIsRecording(false);
+  }, []);
 
   // Format time in MM:SS format
   const formatTime = (seconds: number): string => {
@@ -1040,6 +1124,15 @@ export function WebGLHalftoneProcessor({
     }
   }, [imageFile, isVideo]);
 
+  // Cleanup recording on unmount or file change
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, [imageFile]);
+
   // Load media (image or video) and create texture
   useEffect(() => {
     if (!imageFile || !glRef.current) {
@@ -1432,6 +1525,36 @@ export function WebGLHalftoneProcessor({
                 step={0.25}
                 className="cursor-pointer"
               />
+            </div>
+
+            {/* Recording controls */}
+            <div className="pt-2 space-y-2">
+              <Button
+                variant={isRecording ? "destructive" : "default"}
+                onClick={isRecording ? stopRecording : startRecording}
+                className="w-full"
+              >
+                {isRecording ? (
+                  <>
+                    <Square className="w-4 h-4 mr-2 fill-current" />
+                    Stop Recording
+                  </>
+                ) : (
+                  <>
+                    <Circle className="w-4 h-4 mr-2" />
+                    Record Video (High Quality)
+                  </>
+                )}
+              </Button>
+              {isRecording ? (
+                <p className="text-xs text-center text-muted-foreground">
+                  🔴 Recording at 60fps, 25Mbps...
+                </p>
+              ) : (
+                <p className="text-xs text-center text-muted-foreground">
+                  Saves as WebM. Convert to MP4 using <a href="https://cloudconvert.com/webm-to-mp4" target="_blank" rel="noopener noreferrer" className="underline">CloudConvert</a> or FFmpeg.
+                </p>
+              )}
             </div>
           </div>
         </div>
