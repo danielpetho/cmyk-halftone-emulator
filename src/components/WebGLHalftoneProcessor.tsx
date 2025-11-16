@@ -399,12 +399,12 @@ export function WebGLHalftoneProcessor({
   const [dotSize, setDotSize] = useState([1.0]);
   const [roughness, setRoughness] = useState([2.0]);
   const [fuzz, setFuzz] = useState([0.1]);
-  const [paperNoise, setPaperNoise] = useState([1.0]);
+  const [paperNoise, setPaperNoise] = useState([0.0]);
   const [inkNoise, setInkNoise] = useState([0.6]);
   const [randomness, setRandomness] = useState([0.2]);
-  const [contrast, setContrast] = useState([1.3]);
-  const [blur, setBlur] = useState([0.0]);
-  const [threshold, setThreshold] = useState([0.0]);
+  const [contrast, setContrast] = useState([1.0]);
+  const [blur, setBlur] = useState([1.0]);
+  const [threshold, setThreshold] = useState([0.05]);
   const [glVersion, setGlVersion] = useState(0);
 
   const isMobile = useIsMobile();
@@ -1606,7 +1606,7 @@ export function WebGLHalftoneProcessor({
                 ) : (
                   <>
                     <Circle className="w-4 h-4 mr-2" />
-                    Record Video (High Quality)
+                    Record Video
                   </>
                 )}
               </Button>
