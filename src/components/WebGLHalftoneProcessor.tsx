@@ -65,6 +65,8 @@ uniform float u_paperNoise;
 uniform float u_inkNoise;
 uniform float u_randomness;
 uniform float u_contrast;
+uniform float u_blur;
+uniform float u_threshold;
 uniform vec3 u_paperColor;
 
 // CMYK channel controls - angles in degrees
@@ -195,6 +197,11 @@ float hash(vec2 p) {
 
 // Generate halftone dot for a single channel with custom shapes and random position offsets
 float halftoneChannel(vec2 st, float channelValue, float angle, float roughness, float fuzz, float paperNoise) {
+  // Apply threshold - if value is below threshold, don't render dot at all
+  if (channelValue < u_threshold) {
+    return 0.0;
+  }
+  
   // Apply aspect ratio correction to maintain circular dots
   vec2 aspectCorrectedSt = st;
   aspectCorrectedSt.x *= u_resolution.x / u_resolution.y;
@@ -243,8 +250,41 @@ float halftoneChannel(vec2 st, float channelValue, float angle, float roughness,
 void main() {
   vec2 st = v_texCoord;
   
-  // Sample original texture and apply contrast
-  vec3 texcolor = texture2D(u_texture, st).rgb;
+  // Sample original texture with optional blur
+  vec3 texcolor;
+  
+  if (u_blur > 0.1) {
+    // 13-tap Gaussian blur kernel - fixed size for WebGL compatibility
+    vec2 texelSize = 1.0 / u_resolution;
+    float radius = u_blur;
+    
+    texcolor = vec3(0.0);
+    // Center
+    texcolor += texture2D(u_texture, st).rgb * 0.1964825501511404;
+    
+    // Inner ring (4 samples)
+    texcolor += texture2D(u_texture, st + vec2(-1.0, 0.0) * texelSize * radius).rgb * 0.2969069646728344;
+    texcolor += texture2D(u_texture, st + vec2(1.0, 0.0) * texelSize * radius).rgb * 0.2969069646728344;
+    texcolor += texture2D(u_texture, st + vec2(0.0, -1.0) * texelSize * radius).rgb * 0.2969069646728344;
+    texcolor += texture2D(u_texture, st + vec2(0.0, 1.0) * texelSize * radius).rgb * 0.2969069646728344;
+    
+    // Diagonal samples (4 samples)
+    texcolor += texture2D(u_texture, st + vec2(-1.0, -1.0) * texelSize * radius).rgb * 0.09447039785044732;
+    texcolor += texture2D(u_texture, st + vec2(1.0, -1.0) * texelSize * radius).rgb * 0.09447039785044732;
+    texcolor += texture2D(u_texture, st + vec2(-1.0, 1.0) * texelSize * radius).rgb * 0.09447039785044732;
+    texcolor += texture2D(u_texture, st + vec2(1.0, 1.0) * texelSize * radius).rgb * 0.09447039785044732;
+    
+    // Outer samples (4 samples)
+    texcolor += texture2D(u_texture, st + vec2(-2.0, 0.0) * texelSize * radius).rgb * 0.010381362401148057;
+    texcolor += texture2D(u_texture, st + vec2(2.0, 0.0) * texelSize * radius).rgb * 0.010381362401148057;
+    texcolor += texture2D(u_texture, st + vec2(0.0, -2.0) * texelSize * radius).rgb * 0.010381362401148057;
+    texcolor += texture2D(u_texture, st + vec2(0.0, 2.0) * texelSize * radius).rgb * 0.010381362401148057;
+    
+    // Normalize
+    texcolor /= 1.4946493456176172;
+  } else {
+    texcolor = texture2D(u_texture, st).rgb;
+  }
   
   // Apply contrast adjustment
   texcolor = (texcolor - 0.5) * u_contrast + 0.5;
@@ -357,6 +397,8 @@ export function WebGLHalftoneProcessor({
   const [inkNoise, setInkNoise] = useState([0.6]);
   const [randomness, setRandomness] = useState([0.2]);
   const [contrast, setContrast] = useState([1.3]);
+  const [blur, setBlur] = useState([0.0]);
+  const [threshold, setThreshold] = useState([0.0]);
   const [glVersion, setGlVersion] = useState(0);
 
   const isMobile = useIsMobile();
@@ -790,6 +832,14 @@ export function WebGLHalftoneProcessor({
           program,
           "u_contrast",
         ),
+        u_blur: gl.getUniformLocation(
+          program,
+          "u_blur",
+        ),
+        u_threshold: gl.getUniformLocation(
+          program,
+          "u_threshold",
+        ),
         u_paperColor: gl.getUniformLocation(
           program,
           "u_paperColor",
@@ -983,6 +1033,12 @@ export function WebGLHalftoneProcessor({
         setUniform('u_randomness', () => gl.uniform1f(uniforms.u_randomness, randomness[0]));
       if (uniforms.u_contrast)
         setUniform('u_contrast', () => gl.uniform1f(uniforms.u_contrast, contrast[0]));
+      if (uniforms.u_blur) {
+        setUniform('u_blur', () => gl.uniform1f(uniforms.u_blur, blur[0]));
+        if (blur[0] > 0) console.log("Blur set to:", blur[0]);
+      }
+      if (uniforms.u_threshold)
+        setUniform('u_threshold', () => gl.uniform1f(uniforms.u_threshold, threshold[0]));
 
       const paperCol = hexToRgba(paperColor);
       if (uniforms.u_paperColor)
@@ -1084,6 +1140,8 @@ export function WebGLHalftoneProcessor({
     inkNoise,
     randomness,
     contrast,
+    blur,
+    threshold,
     cyanAngle,
     magentaAngle,
     yellowAngle,
@@ -1167,40 +1225,40 @@ export function WebGLHalftoneProcessor({
     };
 
     const fitCanvasToContainer = (width: number, height: number) => {
-      const canvas = canvasRef.current;
-      const container = containerRef.current;
-      if (canvas && container) {
-        const styles = window.getComputedStyle(container);
-        const padX =
-          parseFloat(styles.paddingLeft || "0") +
-          parseFloat(styles.paddingRight || "0");
-        const padY =
-          parseFloat(styles.paddingTop || "0") +
-          parseFloat(styles.paddingBottom || "0");
+          const canvas = canvasRef.current;
+          const container = containerRef.current;
+          if (canvas && container) {
+            const styles = window.getComputedStyle(container);
+            const padX =
+              parseFloat(styles.paddingLeft || "0") +
+              parseFloat(styles.paddingRight || "0");
+            const padY =
+              parseFloat(styles.paddingTop || "0") +
+              parseFloat(styles.paddingBottom || "0");
 
         const containerW = Math.max(1, (container.clientWidth || width) - padX);
         const containerH = Math.max(1, (container.clientHeight || height) - padY);
         const scale = Math.min(containerW / width, containerH / height);
         const displayW = Math.max(1, Math.floor(width * scale));
         const displayH = Math.max(1, Math.floor(height * scale));
-        const dpr = window.devicePixelRatio || 1;
+            const dpr = window.devicePixelRatio || 1;
 
-        // CSS size (display)
-        canvas.style.width = displayW + "px";
-        canvas.style.height = displayH + "px";
-        canvas.style.display = "block";
+            // CSS size (display)
+            canvas.style.width = displayW + "px";
+            canvas.style.height = displayH + "px";
+            canvas.style.display = "block";
 
-        // Internal resolution for crisp output
-        canvas.width = Math.round(displayW * dpr);
-        canvas.height = Math.round(displayH * dpr);
-        gl.viewport(0, 0, canvas.width, canvas.height);
+            // Internal resolution for crisp output
+            canvas.width = Math.round(displayW * dpr);
+            canvas.height = Math.round(displayH * dpr);
+            gl.viewport(0, 0, canvas.width, canvas.height);
 
-        // Use display size for shader aspect correction
-        setDimensions({
-          width: displayW,
-          height: displayH,
-        });
-      }
+            // Use display size for shader aspect correction
+            setDimensions({
+              width: displayW,
+              height: displayH,
+            });
+          }
     };
 
     if (isVideo) {
@@ -1351,28 +1409,28 @@ export function WebGLHalftoneProcessor({
           // Fit canvas to container while preserving aspect ratio, then render
           requestAnimationFrame(() => {
             fitCanvasToContainer(width, height);
-            render();
-          });
-        } catch (error) {
-          console.error("Failed to upload texture:", error);
-          gl.deleteTexture(texture);
-        }
-      };
+          render();
+        });
+      } catch (error) {
+        console.error("Failed to upload texture:", error);
+        gl.deleteTexture(texture);
+      }
+    };
 
-      img.onerror = () => {
-        console.error("Failed to load image");
-      };
+    img.onerror = () => {
+      console.error("Failed to load image");
+    };
 
-      const url = URL.createObjectURL(imageFile);
-      img.src = url;
+    const url = URL.createObjectURL(imageFile);
+    img.src = url;
 
-      return () => {
-        URL.revokeObjectURL(url);
-        if (textureRef.current && glRef.current) {
-          glRef.current.deleteTexture(textureRef.current);
-          textureRef.current = null;
-        }
-      };
+    return () => {
+      URL.revokeObjectURL(url);
+      if (textureRef.current && glRef.current) {
+        glRef.current.deleteTexture(textureRef.current);
+        textureRef.current = null;
+      }
+    };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageFile, isVideo, isMobile, glVersion]);
@@ -1510,8 +1568,8 @@ export function WebGLHalftoneProcessor({
                 step={0.1}
                 className="cursor-pointer"
                 disabled={!videoDuration}
-              />
-            </div>
+        />
+      </div>
 
             <div className="space-y-2">
               <Label className="text-xs">
@@ -1584,11 +1642,11 @@ export function WebGLHalftoneProcessor({
                       preload="metadata"
                     />
                   ) : !isVideo ? (
-                    <img
-                      src={URL.createObjectURL(imageFile)}
-                      alt="Original"
-                      className="w-32 h-32 object-cover rounded border border-border mx-auto"
-                    />
+                  <img
+                    src={URL.createObjectURL(imageFile)}
+                    alt="Original"
+                    className="w-32 h-32 object-cover rounded border border-border mx-auto"
+                  />
                   ) : null
                 )}
               </div>
@@ -1626,6 +1684,30 @@ export function WebGLHalftoneProcessor({
                     onValueChange={setContrast}
                     min={0.3}
                     max={2.0}
+                    step={0.01}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">
+                    Blur (Pre-filter): {blur[0].toFixed(1)}px
+                  </Label>
+                  <Slider
+                    value={blur}
+                    onValueChange={setBlur}
+                    min={0}
+                    max={30.0}
+                    step={0.1}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">
+                    Threshold (Cutoff): {threshold[0].toFixed(2)}
+                  </Label>
+                  <Slider
+                    value={threshold}
+                    onValueChange={setThreshold}
+                    min={0}
+                    max={0.5}
                     step={0.01}
                   />
                 </div>
@@ -1998,6 +2080,30 @@ export function WebGLHalftoneProcessor({
                               onValueChange={setContrast}
                               min={0.3}
                               max={2.0}
+                              step={0.01}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm">
+                              Blur (Pre-filter): {blur[0].toFixed(1)}px
+                            </Label>
+                            <Slider
+                              value={blur}
+                              onValueChange={setBlur}
+                              min={0}
+                              max={30.0}
+                              step={0.1}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm">
+                              Threshold (Cutoff): {threshold[0].toFixed(2)}
+                            </Label>
+                            <Slider
+                              value={threshold}
+                              onValueChange={setThreshold}
+                              min={0}
+                              max={0.5}
                               step={0.01}
                             />
                           </div>
