@@ -40,12 +40,9 @@ export function InfoModal() {
         <DialogContent className="sm:max-w-md text-left">
           <DialogHeader>
             <DialogTitle className="uppercase text-primary text-left">CMYK Halftone Emulator</DialogTitle>
-            <DialogDescription>
-              This minitool was created for the 2025 Figma Make-a-thon event.
-            </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-8 text-sm">
+          <div className="flex flex-col text-sm space-y-4">
             <p>
               This tool emulates CMYK halftone printing using WebGL shaders. 
               For more details about halftone printing, check the{" "}
@@ -60,9 +57,24 @@ export function InfoModal() {
               </a>
             </p>
 
-            <div className="space-y-3 text-muted-foreground">
-              <div>
-                <p className="uppercase text-xs mb-1 text-primary">Shader Credits</p>
+            <div className="py-1">
+              <p className="uppercase text mb-1 text-primary">Error Reporting</p>
+              <p>
+                For error reporting and feedback, please open an issue on the{" "}
+                <a 
+                  href="https://github.com/danielpetho/cmyk-halftone-emulator/issues" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary underline hover:no-underline inline-flex items-center gap-1"
+                >
+                  GitHub repository
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </p>
+            </div>
+
+
+            <div className="py-1">                <p className="uppercase text mb-1 text-primary">Shader Credits</p>
                 <p>
                   The halftone shader is largely based on{" "}
                   <a 
@@ -77,8 +89,8 @@ export function InfoModal() {
                 </p>
               </div>
 
-              <div>
-                <p className="uppercase text-xs mb-1 text-primary">UI Components</p>
+              <div className="py-1">
+                <p className="uppercase text mb-1 text-primary">UI Components</p>
                 <p>
                   Marquee component from{" "}
                   <a 
@@ -93,8 +105,8 @@ export function InfoModal() {
                 </p>
               </div>
 
-              <div>
-                <p className="uppercase text-xs mb-1 text-primary">Sample Images</p>
+              <div className="py-1">
+                <p className="uppercase mb-1 text-primary">Sample Images</p>
                 <p>
                   Landing page images generated with{" "}
                   <a 
@@ -111,12 +123,15 @@ export function InfoModal() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-border">
+            <DialogDescription>
+              *This minitool was created for the 2025 Figma Make-a-thon event.
+            </DialogDescription>
+
+            <div className="pt-2 border-t border-border text-sm">
               <p className="text-center text-muted-foreground">
                 Built with ❤️ by <a className="text-foreground" href="https://x.com/nonzeroexitcode">Daniel Petho</a>
               </p>
             </div>
-          </div>
         </DialogContent>
       </Dialog>
     </>
