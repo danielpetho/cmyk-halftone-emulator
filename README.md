@@ -12,7 +12,7 @@ Run `npm run dev` to start the development server.
 
 ## Error Reporting
 
-For error reporting and feedback, please open an issue on the [GitHub repository](https://github.com/danielpetho/cmyk-halftone-emulator/issues).
+For error reporting and feedback, please open an [issue](https://github.com/danielpetho/cmyk-halftone-emulator/issues).
 
 ## Credits
 
@@ -24,3 +24,7 @@ Marquee component from [fancycomponents.dev](https://fancycomponents.dev).
 
 ### Sample Images
 Landing page images generated with [krea.ai](https://krea.ai) and processed with this tool.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
