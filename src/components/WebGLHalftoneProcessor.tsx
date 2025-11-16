@@ -194,12 +194,10 @@ mat2 rotationMatrix(float angle) {
   return mat2(c, -s, s, c);
 }
 
-// Simple hash function for random offsets
 float hash(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  p = 50.0 * fract(p * 0.3183099 + vec2(0.71, 0.113));
+  return fract(p.x * p.y * (p.x + p.y));
 }
-
-
 
 // Generate halftone dot for a single channel with custom shapes and random position offsets
 float halftoneChannel(vec2 st, float channelValue, float angle, float roughness, float fuzz, float paperNoise) {
