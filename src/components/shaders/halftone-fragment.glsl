@@ -37,6 +37,9 @@ uniform bool u_showMagenta;
 uniform bool u_showYellow;
 uniform bool u_showBlack;
 
+// Blend mode: 0 = subtractive (multiply), 1 = additive, 2 = normal (alpha blend)
+uniform int u_blendMode;
+
 varying vec2 v_texCoord;
 
 // Simplex noise implementation (simplified version of psrdnoise)
@@ -283,29 +286,60 @@ void main() {
   // Start with paper color
   vec3 rgbscreen = paper;
   
-  // Apply each ink layer with proper color and transparency
+  // Apply each ink layer with selected blend mode
   if (u_showCyan && c > 0.0) {
     vec3 cyanInk = u_cyanColor.rgb;
     float cyanAlpha = u_cyanColor.a * c * inkamount;
-    rgbscreen = mix(rgbscreen, rgbscreen * cyanInk, cyanAlpha);
+    
+    if (u_blendMode == 0) {
+      // Subtractive (multiply) - traditional CMYK
+      rgbscreen = mix(rgbscreen, rgbscreen * cyanInk, cyanAlpha);
+    } else if (u_blendMode == 1) {
+      // Additive - for light inks on dark backgrounds
+      rgbscreen = clamp(rgbscreen + cyanInk * cyanAlpha, 0.0, 1.0);
+    } else {
+      // Normal (alpha blend) - most flexible
+      rgbscreen = mix(rgbscreen, cyanInk, cyanAlpha);
+    }
   }
   
   if (u_showMagenta && m > 0.0) {
     vec3 magentaInk = u_magentaColor.rgb;
     float magentaAlpha = u_magentaColor.a * m * inkamount;
-    rgbscreen = mix(rgbscreen, rgbscreen * magentaInk, magentaAlpha);
+    
+    if (u_blendMode == 0) {
+      rgbscreen = mix(rgbscreen, rgbscreen * magentaInk, magentaAlpha);
+    } else if (u_blendMode == 1) {
+      rgbscreen = clamp(rgbscreen + magentaInk * magentaAlpha, 0.0, 1.0);
+    } else {
+      rgbscreen = mix(rgbscreen, magentaInk, magentaAlpha);
+    }
   }
   
   if (u_showYellow && y > 0.0) {
     vec3 yellowInk = u_yellowColor.rgb;
     float yellowAlpha = u_yellowColor.a * y * inkamount;
-    rgbscreen = mix(rgbscreen, rgbscreen * yellowInk, yellowAlpha);
+    
+    if (u_blendMode == 0) {
+      rgbscreen = mix(rgbscreen, rgbscreen * yellowInk, yellowAlpha);
+    } else if (u_blendMode == 1) {
+      rgbscreen = clamp(rgbscreen + yellowInk * yellowAlpha, 0.0, 1.0);
+    } else {
+      rgbscreen = mix(rgbscreen, yellowInk, yellowAlpha);
+    }
   }
   
   if (u_showBlack && k > 0.0) {
     vec3 blackInk = u_blackColor.rgb;
     float blackAlpha = u_blackColor.a * k * inkamount;
-    rgbscreen = mix(rgbscreen, rgbscreen * blackInk, blackAlpha);
+    
+    if (u_blendMode == 0) {
+      rgbscreen = mix(rgbscreen, rgbscreen * blackInk, blackAlpha);
+    } else if (u_blendMode == 1) {
+      rgbscreen = clamp(rgbscreen + blackInk * blackAlpha, 0.0, 1.0);
+    } else {
+      rgbscreen = mix(rgbscreen, blackInk, blackAlpha);
+    }
   }
   
   // Blend to plain RGB texture under extreme minification (with fallback)

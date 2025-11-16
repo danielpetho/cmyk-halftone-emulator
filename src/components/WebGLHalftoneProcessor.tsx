@@ -10,6 +10,13 @@ import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { Button } from "./ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -70,6 +77,7 @@ export function WebGLHalftoneProcessor({
   const [blur, setBlur] = useState([1.0]);
   const [threshold, setThreshold] = useState([0.05]);
   const [glVersion, setGlVersion] = useState(0);
+  const [blendMode, setBlendMode] = useState(0); // 0 = subtractive, 1 = additive, 2 = normal
 
   const isMobile = useIsMobile();
 
@@ -549,6 +557,10 @@ export function WebGLHalftoneProcessor({
           program,
           "u_showBlack",
         ),
+        u_blendMode: gl.getUniformLocation(
+          program,
+          "u_blendMode",
+        ),
       };
 
       uniformsRef.current = uniforms;
@@ -758,6 +770,9 @@ export function WebGLHalftoneProcessor({
       if (uniforms.u_showBlack)
         setUniform('u_showBlack', () => gl.uniform1i(uniforms.u_showBlack, showBlack ? 1 : 0));
 
+      if (uniforms.u_blendMode)
+        setUniform('u_blendMode', () => gl.uniform1i(uniforms.u_blendMode, blendMode));
+
       // Check for GL errors
       const error = gl.getError();
       if (error !== gl.NO_ERROR) {
@@ -805,6 +820,7 @@ export function WebGLHalftoneProcessor({
     showMagenta,
     showYellow,
     showBlack,
+    blendMode,
     hexToRgba,
   ]);
 
@@ -1315,6 +1331,34 @@ export function WebGLHalftoneProcessor({
               <div className="space-y-4 pt-2 pb-6">
                 <div className="space-y-2">
                   <div className="flex items-center gap-1">
+                    <Label className="text-sm">Blend Mode</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Subtractive: Traditional CMYK (dark inks on light paper)</p>
+                        <p>Additive: For light inks on dark backgrounds</p>
+                        <p>Normal: Most flexible, works with any colors</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Select
+                    value={blendMode.toString()}
+                    onValueChange={(value) => setBlendMode(parseInt(value))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Subtractive (CMYK)</SelectItem>
+                      <SelectItem value="1">Additive</SelectItem>
+                      <SelectItem value="2">Normal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1">
                   <Label className="text-sm">
                       Contrast: {contrast[0].toFixed(2)}
                   </Label>
@@ -1811,6 +1855,34 @@ export function WebGLHalftoneProcessor({
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="space-y-4 pt-2 pb-6">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-1">
+                              <Label className="text-sm">Blend Mode</Label>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Subtractive: Traditional CMYK (dark inks on light paper)</p>
+                                  <p>Additive: For light inks on dark backgrounds</p>
+                                  <p>Normal: Most flexible, works with any colors</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <Select
+                              value={blendMode.toString()}
+                              onValueChange={(value) => setBlendMode(parseInt(value))}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">Subtractive (CMYK)</SelectItem>
+                                <SelectItem value="1">Additive</SelectItem>
+                                <SelectItem value="2">Normal</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                           <div className="space-y-2">
                               <div className="flex items-center gap-1">
                             <Label className="text-sm">
