@@ -15,11 +15,17 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import { Download, Trash2, Play, Pause, SkipBack, SkipForward, Circle, Square } from "lucide-react";
+import { Download, Trash2, Play, Pause, SkipBack, SkipForward, Circle, Square, Info } from "lucide-react";
 import { ImageUpload } from "./ImageUpload";
 import { Knob } from "./ui/knob";
 import { ColorPicker } from "./ui/color-picker";
 import { useIsMobile } from "./ui/use-mobile";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 interface WebGLHalftoneProcessorProps {
   imageFile: File | null;
@@ -1618,11 +1624,20 @@ export function WebGLHalftoneProcessor({
         </div>
       )}
 
-      {/* Original image in accordion - hidden on mobile */}
-      <div className="hidden md:block border-b">
-        <Accordion type="multiple">
+      {/* Scrollable accordion controls */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <TooltipProvider>
+          <Accordion
+            type="multiple"
+            defaultValue={[
+              "halftone-settings",
+              "layer-visibility",
+              "screen-angles",
+            ]}
+          >
+          {/* Original Video/Image */}
           <AccordionItem
-            value="original-image"
+            value="original-media"
             className="px-4"
           >
             <AccordionTrigger className="text-lg uppercase items-center">
@@ -1652,19 +1667,7 @@ export function WebGLHalftoneProcessor({
               </div>
             </AccordionContent>
           </AccordionItem>
-        </Accordion>
-      </div>
 
-      {/* Scrollable accordion controls */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <Accordion
-          type="multiple"
-          defaultValue={[
-            "halftone-settings",
-            "layer-visibility",
-            "screen-angles",
-          ]}
-        >
           {/* Halftone Settings */}
           <AccordionItem
             value="halftone-settings"
@@ -1676,9 +1679,19 @@ export function WebGLHalftoneProcessor({
             <AccordionContent>
               <div className="space-y-4 pt-2 pb-6">
                 <div className="space-y-2">
+                  <div className="flex items-center gap-1">
                   <Label className="text-sm">
-                    Contrast: {contrast[0].toFixed(2)}
+                      Contrast: {contrast[0].toFixed(2)}
                   </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Adjusts the tonal range of the image before halftone processing</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Slider
                     value={contrast}
                     onValueChange={setContrast}
@@ -1688,9 +1701,19 @@ export function WebGLHalftoneProcessor({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm">
-                    Blur (Pre-filter): {blur[0].toFixed(1)}px
-                  </Label>
+                  <div className="flex items-center gap-1">
+                    <Label className="text-sm">
+                      Blur (Pre-filter): {blur[0].toFixed(1)}px
+                    </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Softens edges before halftone processing to reduce harsh cutoffs</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Slider
                     value={blur}
                     onValueChange={setBlur}
@@ -1700,9 +1723,19 @@ export function WebGLHalftoneProcessor({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm">
-                    Threshold (Cutoff): {threshold[0].toFixed(2)}
-                  </Label>
+                  <div className="flex items-center gap-1">
+                    <Label className="text-sm">
+                      Threshold (Cutoff): {threshold[0].toFixed(2)}
+                    </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Eliminates small dots below this value to remove artifacts (0.05-0.15 recommended)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Slider
                     value={threshold}
                     onValueChange={setThreshold}
@@ -1712,9 +1745,19 @@ export function WebGLHalftoneProcessor({
                   />
                 </div>
                 <div className="space-y-2">
+                  <div className="flex items-center gap-1">
                   <Label className="text-sm">
                     Frequency: {frequency[0]}
                   </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Controls the density of halftone dots - higher values = more dots</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Slider
                     value={frequency}
                     onValueChange={setFrequency}
@@ -1724,9 +1767,19 @@ export function WebGLHalftoneProcessor({
                   />
                 </div>
                 <div className="space-y-2">
+                  <div className="flex items-center gap-1">
                   <Label className="text-sm">
                     Dot Size: {dotSize[0].toFixed(2)}
                   </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Maximum size of halftone dots - larger values = bigger dots</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Slider
                     value={dotSize}
                     onValueChange={setDotSize}
@@ -1736,9 +1789,19 @@ export function WebGLHalftoneProcessor({
                   />
                 </div>
                 <div className="space-y-2">
+                  <div className="flex items-center gap-1">
                   <Label className="text-sm">
                     Dot Roughness: {roughness[0].toFixed(2)}
                   </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Adds irregular edges to dots for a more organic, vintage printing look</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Slider
                     value={roughness}
                     onValueChange={setRoughness}
@@ -1748,9 +1811,19 @@ export function WebGLHalftoneProcessor({
                   />
                 </div>
                 <div className="space-y-2">
+                  <div className="flex items-center gap-1">
                   <Label className="text-sm">
                     Edge Fuzz: {fuzz[0].toFixed(2)}
                   </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Controls the softness of dot edges - higher values create smoother transitions</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Slider
                     value={fuzz}
                     onValueChange={setFuzz}
@@ -1760,9 +1833,19 @@ export function WebGLHalftoneProcessor({
                   />
                 </div>
                 <div className="space-y-2">
+                  <div className="flex items-center gap-1">
                   <Label className="text-sm">
                     Paper Noise: {paperNoise[0].toFixed(2)}
                   </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Adds texture variation to the paper surface for a more realistic look</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Slider
                     value={paperNoise}
                     onValueChange={setPaperNoise}
@@ -1772,9 +1855,19 @@ export function WebGLHalftoneProcessor({
                   />
                 </div>
                 <div className="space-y-2">
+                  <div className="flex items-center gap-1">
                   <Label className="text-sm">
                     Ink Noise: {inkNoise[0].toFixed(2)}
                   </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Simulates ink density variation for authentic printing imperfections</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Slider
                     value={inkNoise}
                     onValueChange={setInkNoise}
@@ -1784,9 +1877,19 @@ export function WebGLHalftoneProcessor({
                   />
                 </div>
                 <div className="space-y-2">
+                  <div className="flex items-center gap-1">
                   <Label className="text-sm">
                     Dot Randomness: {randomness[0].toFixed(2)}
                   </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Randomly shifts dot positions to break up regular grid patterns</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Slider
                     value={randomness}
                     onValueChange={setRandomness}
@@ -1993,6 +2096,7 @@ export function WebGLHalftoneProcessor({
             </AccordionContent>
           </AccordionItem>
         </Accordion>
+        </TooltipProvider>
       </div>
 
       {/* Desktop: Reset and Download buttons */}
@@ -2053,6 +2157,7 @@ export function WebGLHalftoneProcessor({
               <div className="h-full flex flex-col">
                 {/* Scrollable accordion controls */}
                 <div className="flex-1 overflow-y-auto min-h-0">
+                  <TooltipProvider>
                   <Accordion
                     type="multiple"
                     defaultValue={[
@@ -2072,9 +2177,19 @@ export function WebGLHalftoneProcessor({
                       <AccordionContent>
                         <div className="space-y-4 pt-2 pb-6">
                           <div className="space-y-2">
+                              <div className="flex items-center gap-1">
                             <Label className="text-sm">
-                              Contrast: {contrast[0].toFixed(2)}
+                                  Contrast: {contrast[0].toFixed(2)}
                             </Label>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Adjusts the tonal range of the image before halftone processing</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
                             <Slider
                               value={contrast}
                               onValueChange={setContrast}
@@ -2084,9 +2199,19 @@ export function WebGLHalftoneProcessor({
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm">
-                              Blur (Pre-filter): {blur[0].toFixed(1)}px
-                            </Label>
+                            <div className="flex items-center gap-1">
+                              <Label className="text-sm">
+                                Blur (Pre-filter): {blur[0].toFixed(1)}px
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Softens edges before halftone processing to reduce harsh cutoffs</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                             <Slider
                               value={blur}
                               onValueChange={setBlur}
@@ -2096,9 +2221,19 @@ export function WebGLHalftoneProcessor({
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm">
-                              Threshold (Cutoff): {threshold[0].toFixed(2)}
-                            </Label>
+                            <div className="flex items-center gap-1">
+                              <Label className="text-sm">
+                                Threshold (Cutoff): {threshold[0].toFixed(2)}
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Eliminates small dots below this value to remove artifacts (0.05-0.15 recommended)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                             <Slider
                               value={threshold}
                               onValueChange={setThreshold}
@@ -2108,9 +2243,19 @@ export function WebGLHalftoneProcessor({
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm">
-                              Frequency: {frequency[0]}
-                            </Label>
+                            <div className="flex items-center gap-1">
+                              <Label className="text-sm">
+                                Frequency: {frequency[0]}
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Controls the density of halftone dots - higher values = more dots</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                             <Slider
                               value={frequency}
                               onValueChange={setFrequency}
@@ -2120,9 +2265,19 @@ export function WebGLHalftoneProcessor({
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm">
-                              Dot Size: {dotSize[0].toFixed(2)}
-                            </Label>
+                            <div className="flex items-center gap-1">
+                              <Label className="text-sm">
+                                Dot Size: {dotSize[0].toFixed(2)}
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Maximum size of halftone dots - larger values = bigger dots</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                             <Slider
                               value={dotSize}
                               onValueChange={setDotSize}
@@ -2132,10 +2287,19 @@ export function WebGLHalftoneProcessor({
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm">
-                              Dot Roughness:{" "}
-                              {roughness[0].toFixed(2)}
-                            </Label>
+                            <div className="flex items-center gap-1">
+                              <Label className="text-sm">
+                                Dot Roughness: {roughness[0].toFixed(2)}
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Adds irregular edges to dots for a more organic, vintage printing look</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                             <Slider
                               value={roughness}
                               onValueChange={setRoughness}
@@ -2145,9 +2309,19 @@ export function WebGLHalftoneProcessor({
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm">
-                              Edge Fuzz: {fuzz[0].toFixed(2)}
-                            </Label>
+                            <div className="flex items-center gap-1">
+                              <Label className="text-sm">
+                                Edge Fuzz: {fuzz[0].toFixed(2)}
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Controls the softness of dot edges - higher values create smoother transitions</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                             <Slider
                               value={fuzz}
                               onValueChange={setFuzz}
@@ -2157,10 +2331,19 @@ export function WebGLHalftoneProcessor({
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm">
-                              Paper Noise:{" "}
-                              {paperNoise[0].toFixed(2)}
-                            </Label>
+                            <div className="flex items-center gap-1">
+                              <Label className="text-sm">
+                                Paper Noise: {paperNoise[0].toFixed(2)}
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Adds texture variation to the paper surface for a more realistic look</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                             <Slider
                               value={paperNoise}
                               onValueChange={setPaperNoise}
@@ -2170,10 +2353,19 @@ export function WebGLHalftoneProcessor({
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm">
-                              Ink Noise:{" "}
-                              {inkNoise[0].toFixed(2)}
-                            </Label>
+                            <div className="flex items-center gap-1">
+                              <Label className="text-sm">
+                                Ink Noise: {inkNoise[0].toFixed(2)}
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Simulates ink density variation for authentic printing imperfections</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                             <Slider
                               value={inkNoise}
                               onValueChange={setInkNoise}
@@ -2183,10 +2375,19 @@ export function WebGLHalftoneProcessor({
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm">
-                              Dot Randomness:{" "}
-                              {randomness[0].toFixed(2)}
-                            </Label>
+                            <div className="flex items-center gap-1">
+                              <Label className="text-sm">
+                                Dot Randomness: {randomness[0].toFixed(2)}
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Randomly shifts dot positions to break up regular grid patterns</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                             <Slider
                               value={randomness}
                               onValueChange={setRandomness}
@@ -2407,6 +2608,7 @@ export function WebGLHalftoneProcessor({
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
+                  </TooltipProvider>
                 </div>
               </div>
             </div>
