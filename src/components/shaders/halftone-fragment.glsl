@@ -199,41 +199,45 @@ float halftoneChannel(vec2 st, float channelValue, float angle, float roughness,
   return 1.0 - (1.0 - aasmoothstep(-fuzz, 0.0, radius)) * (1.0 - aastep(0.0, radius));
 }
 
+// Gaussian function for blur weights
+float gaussian(float x, float sigma) {
+  return exp(-(x * x) / (2.0 * sigma * sigma));
+}
+
 void main() {
   vec2 st = v_texCoord;
   
-  // Sample original texture with optional blur
+  // Sample original texture with optional Gaussian blur
   vec3 texcolor;
   
   if (u_blur > 0.1) {
-    // 13-tap Gaussian blur kernel - fixed size for WebGL compatibility
     vec2 texelSize = 1.0 / u_resolution;
-    float radius = u_blur;
     
-    texcolor = vec3(0.0);
-    // Center
-    texcolor += texture2D(u_texture, st).rgb * 0.1964825501511404;
+    // Sigma is proportional to blur radius for proper Gaussian distribution
+    float sigma = u_blur / 3.0;
     
-    // Inner ring (4 samples)
-    texcolor += texture2D(u_texture, st + vec2(-1.0, 0.0) * texelSize * radius).rgb * 0.2969069646728344;
-    texcolor += texture2D(u_texture, st + vec2(1.0, 0.0) * texelSize * radius).rgb * 0.2969069646728344;
-    texcolor += texture2D(u_texture, st + vec2(0.0, -1.0) * texelSize * radius).rgb * 0.2969069646728344;
-    texcolor += texture2D(u_texture, st + vec2(0.0, 1.0) * texelSize * radius).rgb * 0.2969069646728344;
+    vec3 colorSum = vec3(0.0);
+    float weightSum = 0.0;
     
-    // Diagonal samples (4 samples)
-    texcolor += texture2D(u_texture, st + vec2(-1.0, -1.0) * texelSize * radius).rgb * 0.09447039785044732;
-    texcolor += texture2D(u_texture, st + vec2(1.0, -1.0) * texelSize * radius).rgb * 0.09447039785044732;
-    texcolor += texture2D(u_texture, st + vec2(-1.0, 1.0) * texelSize * radius).rgb * 0.09447039785044732;
-    texcolor += texture2D(u_texture, st + vec2(1.0, 1.0) * texelSize * radius).rgb * 0.09447039785044732;
+    // Sample in a grid pattern with proper Gaussian weights
+    // Use 9x9 kernel for quality (81 samples max, but many will have near-zero weight)
+    for (int x = -4; x <= 4; x++) {
+      for (int y = -4; y <= 4; y++) {
+        vec2 offset = vec2(float(x), float(y)) * texelSize * (u_blur / 4.0);
+        
+        // Calculate Gaussian weight based on distance
+        float dist = length(vec2(float(x), float(y)));
+        float weight = gaussian(dist, sigma);
+        
+        // Skip samples with negligible weight for performance
+        if (weight > 0.001) {
+          colorSum += texture2D(u_texture, st + offset).rgb * weight;
+          weightSum += weight;
+        }
+      }
+    }
     
-    // Outer samples (4 samples)
-    texcolor += texture2D(u_texture, st + vec2(-2.0, 0.0) * texelSize * radius).rgb * 0.010381362401148057;
-    texcolor += texture2D(u_texture, st + vec2(2.0, 0.0) * texelSize * radius).rgb * 0.010381362401148057;
-    texcolor += texture2D(u_texture, st + vec2(0.0, -2.0) * texelSize * radius).rgb * 0.010381362401148057;
-    texcolor += texture2D(u_texture, st + vec2(0.0, 2.0) * texelSize * radius).rgb * 0.010381362401148057;
-    
-    // Normalize
-    texcolor /= 1.4946493456176172;
+    texcolor = colorSum / weightSum;
   } else {
     texcolor = texture2D(u_texture, st).rgb;
   }
