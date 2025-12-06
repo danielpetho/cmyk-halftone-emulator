@@ -1,38 +1,14 @@
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
-import { Card } from "./ui/card";
-import { Slider } from "./ui/slider";
-import { Label } from "./ui/label";
-import { Checkbox } from "./ui/checkbox";
-import { Button } from "./ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "./ui/accordion";
-import { Download, Trash2, Play, Pause, SkipBack, SkipForward, Circle, Square, Info } from "lucide-react";
-import { ImageUpload } from "./ImageUpload";
-import { Knob } from "./ui/knob";
-import { ColorPicker } from "./ui/color-picker";
 import { useIsMobile } from "./ui/use-mobile";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
+import { Sidebar } from "./Sidebar";
+import { MobileSidebar } from "./MobileSidebar";
+import { HalftoneSettings } from "./HalftoneControls";
 
 interface WebGLHalftoneProcessorProps {
   imageFile: File | null;
@@ -1170,633 +1146,120 @@ export function WebGLHalftoneProcessor({
     return null;
   }
 
-  // Controls
-  const controls = (
-    <div className="h-screen flex flex-col">
-      {/* Title section */}
-      <div className="p-4 border-b border-border">
-        <h2 className="text-lg font-semibold uppercase text-center">Halftone Controls</h2>
-      </div>
+  // Create settings object for controls components
+  const settings: HalftoneSettings = useMemo(
+    () => ({
+      frequency,
+      setFrequency,
+      dotSize,
+      setDotSize,
+      roughness,
+      setRoughness,
+      fuzz,
+      setFuzz,
+      paperNoise,
+      setPaperNoise,
+      inkNoise,
+      setInkNoise,
+      randomness,
+      setRandomness,
+      contrast,
+      setContrast,
+      blur,
+      setBlur,
+      threshold,
+      setThreshold,
+      blendMode,
+      setBlendMode,
+      cyanAngle,
+      setCyanAngle,
+      magentaAngle,
+      setMagentaAngle,
+      yellowAngle,
+      setYellowAngle,
+      blackAngle,
+      setBlackAngle,
+      cyanInk,
+      setCyanInk,
+      magentaInk,
+      setMagentaInk,
+      yellowInk,
+      setYellowInk,
+      blackInk,
+      setBlackInk,
+      paperColor,
+      setPaperColor,
+      showCyan,
+      setShowCyan,
+      showMagenta,
+      setShowMagenta,
+      showYellow,
+      setShowYellow,
+      showBlack,
+      setShowBlack,
+    }),
+    [
+      frequency,
+      dotSize,
+      roughness,
+      fuzz,
+      paperNoise,
+      inkNoise,
+      randomness,
+      contrast,
+      blur,
+      threshold,
+      blendMode,
+      cyanAngle,
+      magentaAngle,
+      yellowAngle,
+      blackAngle,
+      cyanInk,
+      magentaInk,
+      yellowInk,
+      blackInk,
+      paperColor,
+      showCyan,
+      showMagenta,
+      showYellow,
+      showBlack,
+    ]
+  );
 
-      {/* Video Controls - only visible for videos */}
-      {isVideo && (
-        <div className="p-4 border-b border-border">
-          <div className="space-y-4">
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={skipBackward}
-                title="Skip backward 5s"
-              >
-                <SkipBack className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="default"
-                size="icon"
-                onClick={togglePlayPause}
-                title={isPlaying ? "Pause" : "Play"}
-              >
-                {isPlaying ? (
-                  <Pause className="w-4 h-4" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={skipForward}
-                title="Skip forward 5s"
-              >
-                <SkipForward className="w-4 h-4" />
-              </Button>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{formatTime(videoProgress)}</span>
-                <span>{formatTime(videoDuration)}</span>
-              </div>
-              <Slider
-                value={[videoProgress]}
-                onValueChange={handleSeek}
-                max={videoDuration || 100}
-                step={0.1}
-                className="cursor-pointer"
-                disabled={!videoDuration}
-        />
-      </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">
-                Playback Speed: {playbackSpeed[0].toFixed(1)}x
-              </Label>
-              <Slider
-                value={playbackSpeed}
-                onValueChange={handleSpeedChange}
-                min={0.25}
-                max={2}
-                step={0.25}
-                className="cursor-pointer"
-              />
-            </div>
-
-            {/* Recording controls */}
-            <div className="pt-2 space-y-2">
-              <Button
-                variant={isRecording ? "destructive" : "default"}
-                onClick={isRecording ? stopRecording : startRecording}
-                className="w-full"
-              >
-                {isRecording ? (
-                  <>
-                    <Square className="w-4 h-4 mr-2 fill-current" />
-                    Stop Recording
-                  </>
-                ) : (
-                  <>
-                    <Circle className="w-4 h-4 mr-2" />
-                    Record Video
-                  </>
-                )}
-              </Button>
-              {isRecording ? (
-                <p className="text-xs text-center text-muted-foreground">
-                  🔴 Recording at 60fps, 25Mbps...
-                </p>
-              ) : (
-                <p className="text-xs text-center text-muted-foreground">
-                  Saves as WebM. Convert to MP4 using <a href="https://cloudconvert.com/webm-to-mp4" target="_blank" rel="noopener noreferrer" className="underline">CloudConvert</a> or FFmpeg.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Scrollable accordion controls */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <TooltipProvider>
-          <Accordion
-            type="multiple"
-            defaultValue={[
-              "halftone-settings",
-              "layer-visibility",
-              "screen-angles",
-            ]}
-          >
-          {/* Original Video/Image */}
-          <AccordionItem
-            value="original-media"
-            className="px-4"
-          >
-            <AccordionTrigger className="text-lg uppercase items-center">
-              Original {isVideo ? "Video" : "Image"}
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="pt-2 pb-6">
-                {imageFile && (
-                  isVideo && previewVideoUrl ? (
-                    <video
-                      key={previewVideoUrl}
-                      src={previewVideoUrl}
-                      className="w-full h-auto max-h-48 object-contain rounded border border-border mx-auto"
-                      controls
-                      muted={false}
-                      loop
-                      preload="metadata"
-                    />
-                  ) : !isVideo ? (
-                  <img
-                    src={URL.createObjectURL(imageFile)}
-                    alt="Original"
-                    className="w-32 h-32 object-cover rounded border border-border mx-auto"
-                  />
-                  ) : null
-                )}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
-          {/* Halftone Settings */}
-          <AccordionItem
-            value="halftone-settings"
-            className="px-4"
-          >
-            <AccordionTrigger className="text-lg uppercase items-center">
-              Halftone Settings
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-4 pt-2 pb-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                    <Label className="text-sm">Blend Mode</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Subtractive: Traditional CMYK (dark inks on light paper)</p>
-                        <p>Additive: For light inks on dark backgrounds</p>
-                        <p>Normal: Most flexible, works with any colors</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Select
-                    value={blendMode.toString()}
-                    onValueChange={(value) => setBlendMode(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">Subtractive (CMYK)</SelectItem>
-                      <SelectItem value="1">Additive</SelectItem>
-                      <SelectItem value="2">Normal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                  <Label className="text-sm">
-                      Contrast: {contrast[0].toFixed(2)}
-                  </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Adjusts the tonal range of the image before halftone processing</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={contrast}
-                    onValueChange={setContrast}
-                    min={0.3}
-                    max={2.0}
-                    step={0.01}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                    <Label className="text-sm">
-                      Blur (Pre-filter): {blur[0].toFixed(1)}px
-                    </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Softens edges before halftone processing to reduce harsh cutoffs</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={blur}
-                    onValueChange={setBlur}
-                    min={0}
-                    max={30.0}
-                    step={0.1}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                    <Label className="text-sm">
-                      Threshold (Cutoff): {threshold[0].toFixed(2)}
-                    </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Eliminates small dots below this value to remove artifacts (0.05-0.15 recommended)</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={threshold}
-                    onValueChange={setThreshold}
-                    min={0}
-                    max={0.5}
-                    step={0.01}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                  <Label className="text-sm">
-                    Frequency: {frequency[0]}
-                  </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Controls the density of halftone dots - higher values = more dots</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={frequency}
-                    onValueChange={setFrequency}
-                    min={50}
-                    max={200}
-                    step={5}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                  <Label className="text-sm">
-                    Dot Size: {dotSize[0].toFixed(2)}
-                  </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Maximum size of halftone dots - larger values = bigger dots</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={dotSize}
-                    onValueChange={setDotSize}
-                    min={0.1}
-                    max={1.0}
-                    step={0.05}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                  <Label className="text-sm">
-                    Dot Roughness: {roughness[0].toFixed(2)}
-                  </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Adds irregular edges to dots for a more organic, vintage printing look</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={roughness}
-                    onValueChange={setRoughness}
-                    min={0}
-                    max={2}
-                    step={0.05}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                  <Label className="text-sm">
-                    Edge Fuzz: {fuzz[0].toFixed(2)}
-                  </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Controls the softness of dot edges - higher values create smoother transitions</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={fuzz}
-                    onValueChange={setFuzz}
-                    min={0}
-                    max={0.5}
-                    step={0.01}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                  <Label className="text-sm">
-                    Paper Noise: {paperNoise[0].toFixed(2)}
-                  </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Adds texture variation to the paper surface for a more realistic look</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={paperNoise}
-                    onValueChange={setPaperNoise}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                  <Label className="text-sm">
-                    Ink Noise: {inkNoise[0].toFixed(2)}
-                  </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Simulates ink density variation for authentic printing imperfections</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={inkNoise}
-                    onValueChange={setInkNoise}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                  <Label className="text-sm">
-                    Dot Randomness: {randomness[0].toFixed(2)}
-                  </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Randomly shifts dot positions to break up regular grid patterns</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={randomness}
-                    onValueChange={setRandomness}
-                    min={0}
-                    max={0.4}
-                    step={0.05}
-                  />
-                </div>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
-          {/* Layer Visibility */}
-          <AccordionItem
-            value="layer-visibility"
-            className="px-4"
-          >
-            <AccordionTrigger className="text-lg uppercase items-center">
-              Layer Visibility
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-3 pt-2 pb-6">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="cyan"
-                    checked={showCyan}
-                    onCheckedChange={setShowCyan}
-                  />
-                  <Label
-                    htmlFor="cyan"
-                    className="text-sm text-cyan-600"
-                  >
-                    Cyan
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="magenta"
-                    checked={showMagenta}
-                    onCheckedChange={setShowMagenta}
-                  />
-                  <Label
-                    htmlFor="magenta"
-                    className="text-sm text-pink-600"
-                  >
-                    Magenta
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="yellow"
-                    checked={showYellow}
-                    onCheckedChange={setShowYellow}
-                  />
-                  <Label
-                    htmlFor="yellow"
-                    className="text-sm text-yellow-600"
-                  >
-                    Yellow
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="black"
-                    checked={showBlack}
-                    onCheckedChange={setShowBlack}
-                  />
-                  <Label
-                    htmlFor="black"
-                    className="text-sm text-gray-800"
-                  >
-                    Black
-                  </Label>
-                </div>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
-          {/* Screen Angles */}
-          <AccordionItem value="screen-angles" className="px-4">
-            <AccordionTrigger className="text-lg uppercase items-center">
-              Screen Angles
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="grid grid-cols-2 gap-8 pt-2 px-4 py-6">
-                <Knob
-                  value={cyanAngle[0]}
-                  onChange={(value) => setCyanAngle([value])}
-                  min={-90}
-                  max={90}
-                  step={5}
-                  label="Cyan"
-                  size={35}
-                />
-                <Knob
-                  value={magentaAngle[0]}
-                  onChange={(value) => setMagentaAngle([value])}
-                  min={-90}
-                  max={90}
-                  step={5}
-                  label="Magenta"
-                  size={35}
-                />
-                <Knob
-                  value={yellowAngle[0]}
-                  onChange={(value) => setYellowAngle([value])}
-                  min={-90}
-                  max={90}
-                  step={5}
-                  label="Yellow"
-                  size={35}
-                />
-                <Knob
-                  value={blackAngle[0]}
-                  onChange={(value) => setBlackAngle([value])}
-                  min={-90}
-                  max={90}
-                  step={5}
-                  label="Black"
-                  size={35}
-                />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
-          {/* Ink Colors */}
-          <AccordionItem value="ink-colors" className="px-4">
-            <AccordionTrigger className="text-lg uppercase items-center">
-              Ink Colors
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="grid grid-cols-2 gap-4 pt-2 pb-6">
-                <div className="flex flex-col items-center space-y-2">
-                  <Label className="text-xs text-center">
-                    Cyan
-                  </Label>
-                  <div className="flex flex-col items-center gap-2">
-                    <ColorPicker
-                      value={cyanInk}
-                      onChange={setCyanInk}
-                    />
-                    <span className="text-xs text-muted-foreground text-center">
-                      {cyanInk.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center space-y-2">
-                  <Label className="text-xs text-center">
-                    Magenta
-                  </Label>
-                  <div className="flex flex-col items-center gap-2">
-                    <ColorPicker
-                      value={magentaInk}
-                      onChange={setMagentaInk}
-                    />
-                    <span className="text-xs text-muted-foreground text-center">
-                      {magentaInk.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center space-y-2">
-                  <Label className="text-xs text-center">
-                    Yellow
-                  </Label>
-                  <div className="flex flex-col items-center gap-2">
-                    <ColorPicker
-                      value={yellowInk}
-                      onChange={setYellowInk}
-                    />
-                    <span className="text-xs text-muted-foreground text-center">
-                      {yellowInk.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center space-y-2">
-                  <Label className="text-xs text-center">
-                    Black
-                  </Label>
-                  <div className="flex flex-col items-center gap-2">
-                    <ColorPicker
-                      value={blackInk}
-                      onChange={setBlackInk}
-                    />
-                    <span className="text-xs text-muted-foreground text-center">
-                      {blackInk.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center space-y-2 col-span-2 pt-4">
-                  <Label className="text-xs text-center">
-                    Paper Color
-                  </Label>
-                  <div className="flex flex-col items-center gap-2">
-                    <ColorPicker
-                      value={paperColor}
-                      onChange={setPaperColor}
-                    />
-                    <span className="text-xs text-muted-foreground text-center">
-                      {paperColor.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-        </TooltipProvider>
-      </div>
-
-      {/* Desktop: Reset and Download buttons */}
-      <div className="hidden md:block p-4 border-t border-border space-y-2">
-        <Button
-          variant="outline"
-          onClick={onReset}
-          className="w-full cursor-pointer"
-        >
-          <Trash2 className="w-4 h-4 mr-2" />
-          Reset
-        </Button>
-        <Button
-          onClick={handleDownload}
-          className="w-full bg-black text-white hover:bg-black/90 hover:scale-105 active:scale-95 transition-all duration-150 border-0 cursor-pointer"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          {isVideo ? "Download Current Frame" : "Download Image"}
-        </Button>
-      </div>
-    </div>
+  // Video controls object for Sidebar
+  const videoControlsProps = useMemo(
+    () =>
+      isVideo
+        ? {
+            isPlaying,
+            videoProgress,
+            videoDuration,
+            playbackSpeed,
+            isRecording,
+            togglePlayPause,
+            skipBackward,
+            skipForward,
+            handleSeek,
+            handleSpeedChange,
+            startRecording,
+            stopRecording,
+          }
+        : undefined,
+    [
+      isVideo,
+      isPlaying,
+      videoProgress,
+      videoDuration,
+      playbackSpeed,
+      isRecording,
+      togglePlayPause,
+      skipBackward,
+      skipForward,
+      handleSeek,
+      handleSpeedChange,
+      startRecording,
+      stopRecording,
+    ]
   );
 
   const mainCanvas = (
@@ -1812,10 +1275,7 @@ export function WebGLHalftoneProcessor({
         }}
       />
       {/* Hidden video element for video texture source */}
-      <video
-        ref={videoRef}
-        style={{ display: "none" }}
-      />
+      <video ref={videoRef} style={{ display: "none" }} />
     </div>
   );
 
@@ -1831,513 +1291,14 @@ export function WebGLHalftoneProcessor({
 
           {/* Controls - bottom half, scrollable */}
           <div className="h-1/2 border-t border-border bg-card flex flex-col">
-            {/* Scrollable controls content */}
-            <div className="flex-1 overflow-y-auto min-h-0">
-              <div className="h-full flex flex-col">
-                {/* Scrollable accordion controls */}
-                <div className="flex-1 overflow-y-auto min-h-0">
-                  <TooltipProvider>
-                  <Accordion
-                    type="multiple"
-                    defaultValue={[
-                      "halftone-settings",
-                      "layer-visibility",
-                      "screen-angles",
-                    ]}
-                  >
-                    {/* Halftone Settings */}
-                    <AccordionItem
-                      value="halftone-settings"
-                      className="px-4"
-                    >
-                      <AccordionTrigger className="text-lg uppercase items-center">
-                        Halftone Settings
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-4 pt-2 pb-6">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1">
-                              <Label className="text-sm">Blend Mode</Label>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Subtractive: Traditional CMYK (dark inks on light paper)</p>
-                                  <p>Additive: For light inks on dark backgrounds</p>
-                                  <p>Normal: Most flexible, works with any colors</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Select
-                              value={blendMode.toString()}
-                              onValueChange={(value) => setBlendMode(parseInt(value))}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="0">Subtractive (CMYK)</SelectItem>
-                                <SelectItem value="1">Additive</SelectItem>
-                                <SelectItem value="2">Normal</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                              <div className="flex items-center gap-1">
-                            <Label className="text-sm">
-                                  Contrast: {contrast[0].toFixed(2)}
-                            </Label>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Adjusts the tonal range of the image before halftone processing</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            <Slider
-                              value={contrast}
-                              onValueChange={setContrast}
-                              min={0.3}
-                              max={2.0}
-                              step={0.01}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1">
-                              <Label className="text-sm">
-                                Blur (Pre-filter): {blur[0].toFixed(1)}px
-                              </Label>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Softens edges before halftone processing to reduce harsh cutoffs</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Slider
-                              value={blur}
-                              onValueChange={setBlur}
-                              min={0}
-                              max={30.0}
-                              step={0.1}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1">
-                              <Label className="text-sm">
-                                Threshold (Cutoff): {threshold[0].toFixed(2)}
-                              </Label>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Eliminates small dots below this value to remove artifacts (0.05-0.15 recommended)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Slider
-                              value={threshold}
-                              onValueChange={setThreshold}
-                              min={0}
-                              max={0.5}
-                              step={0.01}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1">
-                              <Label className="text-sm">
-                                Frequency: {frequency[0]}
-                              </Label>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Controls the density of halftone dots - higher values = more dots</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Slider
-                              value={frequency}
-                              onValueChange={setFrequency}
-                              min={50}
-                              max={200}
-                              step={5}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1">
-                              <Label className="text-sm">
-                                Dot Size: {dotSize[0].toFixed(2)}
-                              </Label>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Maximum size of halftone dots - larger values = bigger dots</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Slider
-                              value={dotSize}
-                              onValueChange={setDotSize}
-                              min={0.1}
-                              max={1.0}
-                              step={0.05}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1">
-                              <Label className="text-sm">
-                                Dot Roughness: {roughness[0].toFixed(2)}
-                              </Label>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Adds irregular edges to dots for a more organic, vintage printing look</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Slider
-                              value={roughness}
-                              onValueChange={setRoughness}
-                              min={0}
-                              max={2}
-                              step={0.05}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1">
-                              <Label className="text-sm">
-                                Edge Fuzz: {fuzz[0].toFixed(2)}
-                              </Label>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Controls the softness of dot edges - higher values create smoother transitions</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Slider
-                              value={fuzz}
-                              onValueChange={setFuzz}
-                              min={0}
-                              max={0.5}
-                              step={0.01}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1">
-                              <Label className="text-sm">
-                                Paper Noise: {paperNoise[0].toFixed(2)}
-                              </Label>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Adds texture variation to the paper surface for a more realistic look</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Slider
-                              value={paperNoise}
-                              onValueChange={setPaperNoise}
-                              min={0}
-                              max={1}
-                              step={0.05}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1">
-                              <Label className="text-sm">
-                                Ink Noise: {inkNoise[0].toFixed(2)}
-                              </Label>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Simulates ink density variation for authentic printing imperfections</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Slider
-                              value={inkNoise}
-                              onValueChange={setInkNoise}
-                              min={0}
-                              max={1}
-                              step={0.05}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1">
-                              <Label className="text-sm">
-                                Dot Randomness: {randomness[0].toFixed(2)}
-                              </Label>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Randomly shifts dot positions to break up regular grid patterns</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Slider
-                              value={randomness}
-                              onValueChange={setRandomness}
-                              min={0}
-                              max={0.4}
-                              step={0.05}
-                            />
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Layer Visibility */}
-                    <AccordionItem
-                      value="layer-visibility"
-                      className="px-4"
-                    >
-                      <AccordionTrigger className="text-lg uppercase items-center">
-                        Layer Visibility
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-3 pt-2 pb-6">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="cyan"
-                              checked={showCyan}
-                              onCheckedChange={setShowCyan}
-                            />
-                            <Label
-                              htmlFor="cyan"
-                              className="text-sm text-cyan-600"
-                            >
-                              Cyan
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="magenta"
-                              checked={showMagenta}
-                              onCheckedChange={setShowMagenta}
-                            />
-                            <Label
-                              htmlFor="magenta"
-                              className="text-sm text-pink-600"
-                            >
-                              Magenta
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="yellow"
-                              checked={showYellow}
-                              onCheckedChange={setShowYellow}
-                            />
-                            <Label
-                              htmlFor="yellow"
-                              className="text-sm text-yellow-600"
-                            >
-                              Yellow
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="black"
-                              checked={showBlack}
-                              onCheckedChange={setShowBlack}
-                            />
-                            <Label
-                              htmlFor="black"
-                              className="text-sm text-gray-800"
-                            >
-                              Black
-                            </Label>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Screen Angles */}
-                    <AccordionItem
-                      value="screen-angles"
-                      className="px-4"
-                    >
-                      <AccordionTrigger className="text-lg uppercase items-center">
-                        Screen Angles
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="grid grid-cols-2 gap-8 pt-2 px-4 py-6">
-                          <Knob
-                            value={cyanAngle[0]}
-                            onChange={(value) =>
-                              setCyanAngle([value])
-                            }
-                            min={-90}
-                            max={90}
-                            step={5}
-                            label="Cyan"
-                            size={35}
-                          />
-                          <Knob
-                            value={magentaAngle[0]}
-                            onChange={(value) =>
-                              setMagentaAngle([value])
-                            }
-                            min={-90}
-                            max={90}
-                            step={5}
-                            label="Magenta"
-                            size={35}
-                          />
-                          <Knob
-                            value={yellowAngle[0]}
-                            onChange={(value) =>
-                              setYellowAngle([value])
-                            }
-                            min={-90}
-                            max={90}
-                            step={5}
-                            label="Yellow"
-                            size={35}
-                          />
-                          <Knob
-                            value={blackAngle[0]}
-                            onChange={(value) =>
-                              setBlackAngle([value])
-                            }
-                            min={-90}
-                            max={90}
-                            step={5}
-                            label="Black"
-                            size={35}
-                          />
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Ink Colors */}
-                    <AccordionItem
-                      value="ink-colors"
-                      className="px-4"
-                    >
-                      <AccordionTrigger className="text-lg uppercase items-center">
-                        Ink Colors
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="grid grid-cols-2 gap-4 pt-2 pb-6">
-                          <div className="flex flex-col items-center space-y-2">
-                            <Label className="text-xs text-center">
-                              Cyan
-                            </Label>
-                            <div className="flex flex-col items-center gap-2">
-                              <ColorPicker
-                                value={cyanInk}
-                                onChange={setCyanInk}
-                              />
-                              <span className="text-xs text-muted-foreground text-center">
-                                {cyanInk.toUpperCase()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-center space-y-2">
-                            <Label className="text-xs text-center">
-                              Magenta
-                            </Label>
-                            <div className="flex flex-col items-center gap-2">
-                              <ColorPicker
-                                value={magentaInk}
-                                onChange={setMagentaInk}
-                              />
-                              <span className="text-xs text-muted-foreground text-center">
-                                {magentaInk.toUpperCase()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-center space-y-2">
-                            <Label className="text-xs text-center">
-                              Yellow
-                            </Label>
-                            <div className="flex flex-col items-center gap-2">
-                              <ColorPicker
-                                value={yellowInk}
-                                onChange={setYellowInk}
-                              />
-                              <span className="text-xs text-muted-foreground text-center">
-                                {yellowInk.toUpperCase()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-center space-y-2">
-                            <Label className="text-xs text-center">
-                              Black
-                            </Label>
-                            <div className="flex flex-col items-center gap-2">
-                              <ColorPicker
-                                value={blackInk}
-                                onChange={setBlackInk}
-                              />
-                              <span className="text-xs text-muted-foreground text-center">
-                                {blackInk.toUpperCase()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-center space-y-2 col-span-2 pt-4">
-                            <Label className="text-xs text-center">
-                              Paper Color
-                            </Label>
-                            <div className="flex flex-col items-center gap-2">
-                              <ColorPicker
-                                value={paperColor}
-                                onChange={setPaperColor}
-                              />
-                              <span className="text-xs text-muted-foreground text-center">
-                                {paperColor.toUpperCase()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                  </TooltipProvider>
-                </div>
-              </div>
-            </div>
-
-            {/* Fixed buttons at bottom */}
-            <div className="p-4 border-t border-border space-y-2 bg-card">
-              <Button
-                variant="outline"
-                onClick={onReset}
-                className="w-full cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Reset
-              </Button>
-              <Button
-                onClick={handleDownload}
-                className="w-full bg-black text-white hover:bg-black/90 hover:scale-105 active:scale-95 transition-all duration-150 border-0 cursor-pointer"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                {isVideo ? "Download Current Frame" : "Download Image"}
-              </Button>
-            </div>
+            <MobileSidebar
+              settings={settings}
+              imageFile={imageFile}
+              isVideo={isVideo}
+              previewVideoUrl={previewVideoUrl}
+              onReset={onReset}
+              onDownload={handleDownload}
+            />
           </div>
         </div>
       ) : (
@@ -2345,7 +1306,15 @@ export function WebGLHalftoneProcessor({
         <div className="hidden md:grid md:grid-cols-4 h-screen">
           {/* Left sidebar - Controls (1/4 width) */}
           <div className="col-span-1 border-r border-border bg-card max-w-[300px]">
-            {controls}
+            <Sidebar
+              settings={settings}
+              imageFile={imageFile}
+              isVideo={isVideo}
+              previewVideoUrl={previewVideoUrl}
+              onReset={onReset}
+              onDownload={handleDownload}
+              videoControls={videoControlsProps}
+            />
           </div>
 
           {/* Right side - Main halftone image (3/4 width) */}
