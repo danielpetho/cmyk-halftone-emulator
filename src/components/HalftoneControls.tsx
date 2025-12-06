@@ -1,6 +1,7 @@
 import { Label } from "./ui/label";
 import { Slider } from "./ui/slider";
 import { Checkbox } from "./ui/checkbox";
+import { Button } from "./ui/button";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import { Info } from "lucide-react";
+import { Info, Play, Pause, SkipBack, SkipForward, Circle, Square } from "lucide-react";
 import { Knob } from "./ui/knob";
 import { ColorPicker } from "./ui/color-picker";
 import {
@@ -23,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import { VideoControlsProps } from "./VideoControls";
 
 export interface HalftoneSettings {
   // General settings
@@ -82,12 +84,21 @@ export interface HalftoneSettings {
   setShowBlack: (v: boolean) => void;
 }
 
+// Format time in MM:SS format
+const formatTime = (seconds: number): string => {
+  if (isNaN(seconds)) return "0:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
 interface HalftoneControlsProps {
   settings: HalftoneSettings;
   imageFile: File | null;
   isVideo?: boolean;
   previewVideoUrl?: string | null;
   showOriginalMedia?: boolean;
+  videoControls?: VideoControlsProps;
 }
 
 export function HalftoneControls({
@@ -96,6 +107,7 @@ export function HalftoneControls({
   isVideo = false,
   previewVideoUrl,
   showOriginalMedia = true,
+  videoControls,
 }: HalftoneControlsProps) {
   const {
     frequency,
@@ -148,16 +160,124 @@ export function HalftoneControls({
     setShowBlack,
   } = settings;
 
+  // Build default open accordions based on what's available
+  const defaultOpenSections = [
+    "halftone-settings",
+    "ink-colors",
+  ];
+  if (isVideo && videoControls) {
+    defaultOpenSections.unshift("video-controls");
+  }
+
   return (
     <TooltipProvider>
-      <Accordion
-        type="multiple"
-        defaultValue={[
-          "halftone-settings",
-          "layer-visibility",
-          "screen-angles",
-        ]}
-      >
+      <Accordion type="multiple" defaultValue={defaultOpenSections}>
+        {/* Video Controls - only visible for videos */}
+        {isVideo && videoControls && (
+          <AccordionItem value="video-controls" className="px-4">
+            <AccordionTrigger className="text-lg uppercase items-center">
+              Video Controls
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2 pb-6">
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={videoControls.skipBackward}
+                    title="Skip backward 5s"
+                  >
+                    <SkipBack className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="icon"
+                    onClick={videoControls.togglePlayPause}
+                    title={videoControls.isPlaying ? "Pause" : "Play"}
+                  >
+                    {videoControls.isPlaying ? (
+                      <Pause className="w-4 h-4" />
+                    ) : (
+                      <Play className="w-4 h-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={videoControls.skipForward}
+                    title="Skip forward 5s"
+                  >
+                    <SkipForward className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{formatTime(videoControls.videoProgress)}</span>
+                    <span>{formatTime(videoControls.videoDuration)}</span>
+                  </div>
+                  <Slider
+                    value={[videoControls.videoProgress]}
+                    onValueChange={videoControls.handleSeek}
+                    max={videoControls.videoDuration || 100}
+                    step={0.1}
+                    className="cursor-pointer"
+                    disabled={!videoControls.videoDuration}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">
+                    Playback Speed: {videoControls.playbackSpeed[0].toFixed(1)}x
+                  </Label>
+                  <Slider
+                    value={videoControls.playbackSpeed}
+                    onValueChange={videoControls.handleSpeedChange}
+                    min={0.25}
+                    max={2}
+                    step={0.25}
+                    className="cursor-pointer"
+                  />
+                </div>
+
+                {/* Recording controls */}
+                <div className="pt-2 space-y-2">
+                  <Button
+                    variant={videoControls.isRecording ? "destructive" : "default"}
+                    onClick={
+                      videoControls.isRecording
+                        ? videoControls.stopRecording
+                        : videoControls.startRecording
+                    }
+                    className="w-full"
+                  >
+                    {videoControls.isRecording ? (
+                      <>
+                        <Square className="w-4 h-4 mr-2 fill-current" />
+                        Stop Recording
+                      </>
+                    ) : (
+                      <>
+                        <Circle className="w-4 h-4 mr-2" />
+                        Record Video
+                      </>
+                    )}
+                  </Button>
+                  {videoControls.isRecording ? (
+                    <p className="text-xs text-center text-muted-foreground">
+                      🔴 Recording in progress...
+                    </p>
+                  ) : (
+                    <p className="text-xs text-center text-muted-foreground">
+                      Records as MP4 (or WebM on Firefox).
+                    </p>
+                  )}
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
         {/* Original Video/Image */}
         {showOriginalMedia && (
           <AccordionItem value="original-media" className="px-4">
@@ -384,6 +504,62 @@ export function HalftoneControls({
           </AccordionContent>
         </AccordionItem>
 
+        {/* Ink Colors */}
+        <AccordionItem value="ink-colors" className="px-4">
+          <AccordionTrigger className="text-lg uppercase items-center">
+            Ink Colors
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="grid grid-cols-2 gap-4 pt-2 pb-6">
+              <div className="flex flex-col items-center space-y-2">
+                <Label className="text-xs text-center">Cyan</Label>
+                <div className="flex flex-col items-center gap-2">
+                  <ColorPicker value={cyanInk} onChange={setCyanInk} />
+                  <span className="text-xs text-muted-foreground text-center">
+                    {cyanInk.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col items-center space-y-2">
+                <Label className="text-xs text-center">Magenta</Label>
+                <div className="flex flex-col items-center gap-2">
+                  <ColorPicker value={magentaInk} onChange={setMagentaInk} />
+                  <span className="text-xs text-muted-foreground text-center">
+                    {magentaInk.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col items-center space-y-2">
+                <Label className="text-xs text-center">Yellow</Label>
+                <div className="flex flex-col items-center gap-2">
+                  <ColorPicker value={yellowInk} onChange={setYellowInk} />
+                  <span className="text-xs text-muted-foreground text-center">
+                    {yellowInk.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col items-center space-y-2">
+                <Label className="text-xs text-center">Black</Label>
+                <div className="flex flex-col items-center gap-2">
+                  <ColorPicker value={blackInk} onChange={setBlackInk} />
+                  <span className="text-xs text-muted-foreground text-center">
+                    {blackInk.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col items-center space-y-2 col-span-2 pt-4">
+                <Label className="text-xs text-center">Paper Color</Label>
+                <div className="flex flex-col items-center gap-2">
+                  <ColorPicker value={paperColor} onChange={setPaperColor} />
+                  <span className="text-xs text-muted-foreground text-center">
+                    {paperColor.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
         {/* Layer Visibility */}
         <AccordionItem value="layer-visibility" className="px-4">
           <AccordionTrigger className="text-lg uppercase items-center">
@@ -465,64 +641,7 @@ export function HalftoneControls({
             </div>
           </AccordionContent>
         </AccordionItem>
-
-        {/* Ink Colors */}
-        <AccordionItem value="ink-colors" className="px-4">
-          <AccordionTrigger className="text-lg uppercase items-center">
-            Ink Colors
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="grid grid-cols-2 gap-4 pt-2 pb-6">
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Cyan</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={cyanInk} onChange={setCyanInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {cyanInk.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Magenta</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={magentaInk} onChange={setMagentaInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {magentaInk.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Yellow</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={yellowInk} onChange={setYellowInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {yellowInk.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Black</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={blackInk} onChange={setBlackInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {blackInk.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2 col-span-2 pt-4">
-                <Label className="text-xs text-center">Paper Color</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={paperColor} onChange={setPaperColor} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {paperColor.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
       </Accordion>
     </TooltipProvider>
   );
 }
-

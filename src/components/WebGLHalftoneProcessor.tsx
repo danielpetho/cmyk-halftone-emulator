@@ -289,21 +289,34 @@ export function WebGLHalftoneProcessor({
     video.currentTime = Math.min(video.duration, video.currentTime + 5);
   }, [isVideo]);
 
+  // Track the selected mime type for the recording
+  const selectedMimeTypeRef = useRef<string>('video/mp4');
+
   // Recording functions
   const startRecording = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !isVideo) return;
 
     try {
-      // Get canvas stream at 60 fps for smoother recording
-      const stream = canvas.captureStream(60);
+      // Detect if we're on mobile for adjusted settings
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       
-      // High quality recording options
+      // Use lower framerate and bitrate on mobile for better performance
+      const targetFps = isMobileDevice ? 30 : 60;
+      const bitrate = isMobileDevice ? 8000000 : 25000000; // 8 Mbps mobile, 25 Mbps desktop
+      
+      // Get canvas stream
+      const stream = canvas.captureStream(targetFps);
+      
       let mediaRecorder: MediaRecorder;
-      const bitrate = 25000000; // 25 Mbps for high quality
       
       // Try different codecs in order of preference
+      // Prefer MP4 for maximum playback compatibility (works everywhere)
       const codecOptions = [
+        { mimeType: 'video/mp4;codecs=avc1.42E01E', videoBitsPerSecond: bitrate },
+        { mimeType: 'video/mp4;codecs=avc1', videoBitsPerSecond: bitrate },
+        { mimeType: 'video/mp4', videoBitsPerSecond: bitrate },
+        // Fallback to WebM for Firefox and older browsers
         { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: bitrate },
         { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: bitrate },
         { mimeType: 'video/webm', videoBitsPerSecond: bitrate },
@@ -319,8 +332,10 @@ export function WebGLHalftoneProcessor({
       
       if (selectedCodec) {
         mediaRecorder = new MediaRecorder(stream, selectedCodec);
+        selectedMimeTypeRef.current = selectedCodec.mimeType;
       } else {
         mediaRecorder = new MediaRecorder(stream);
+        selectedMimeTypeRef.current = 'video/mp4'; // fallback
       }
       
       recordedChunksRef.current = [];
@@ -332,11 +347,16 @@ export function WebGLHalftoneProcessor({
       };
       
       mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        // Determine file extension based on selected codec
+        const isMP4 = selectedMimeTypeRef.current.includes('mp4');
+        const extension = isMP4 ? 'mp4' : 'webm';
+        const mimeType = isMP4 ? 'video/mp4' : 'video/webm';
+        
+        const blob = new Blob(recordedChunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `halftone_video_${Date.now()}.webm`;
+        link.download = `halftone_video_${Date.now()}.${extension}`;
         link.click();
         URL.revokeObjectURL(url);
         recordedChunksRef.current = [];
@@ -1298,6 +1318,7 @@ export function WebGLHalftoneProcessor({
               previewVideoUrl={previewVideoUrl}
               onReset={onReset}
               onDownload={handleDownload}
+              videoControls={videoControlsProps}
             />
           </div>
         </div>
