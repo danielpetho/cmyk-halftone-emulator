@@ -205,51 +205,69 @@ float gaussian(float x, float sigma) {
   return exp(-(x * x) / (2.0 * sigma * sigma));
 }
 
-void main() {
-  vec2 st = v_texCoord;
+// Pixelate UV coordinates to match a rotated halftone grid
+// Each channel needs its own pixelation based on its screen angle
+vec2 pixelateToRotatedGrid(vec2 uv, float freq, float angle) {
+  // Apply aspect ratio correction (same as in halftoneChannel)
+  vec2 aspectCorrected = uv;
+  aspectCorrected.x *= u_resolution.x / u_resolution.y;
   
-  // Sample original texture with optional Gaussian blur
-  vec3 texcolor;
+  // Rotate to the channel's screen angle
+  vec2 rotatedUV = rotationMatrix(angle) * aspectCorrected * freq;
   
+  // Find cell center in rotated space
+  vec2 cellCenter = floor(rotatedUV) + 0.5;
+  
+  // Rotate back and undo frequency scaling
+  mat2 invRotation = rotationMatrix(-angle);
+  vec2 unrotated = invRotation * cellCenter / freq;
+  
+  // Undo aspect ratio correction
+  unrotated.x /= u_resolution.x / u_resolution.y;
+  
+  return unrotated;
+}
+
+// Sample texture with optional blur at a specific position
+vec3 sampleWithBlur(vec2 samplePos) {
   if (u_blur > 0.1) {
     vec2 texelSize = 1.0 / u_resolution;
-    
-    // Sigma is proportional to blur radius for proper Gaussian distribution
     float sigma = u_blur / 3.0;
     
     vec3 colorSum = vec3(0.0);
     float weightSum = 0.0;
     
-    // Sample in a grid pattern with proper Gaussian weights
-    // Use 9x9 kernel for quality (81 samples max, but many will have near-zero weight)
     for (int x = -4; x <= 4; x++) {
       for (int y = -4; y <= 4; y++) {
         vec2 offset = vec2(float(x), float(y)) * texelSize * (u_blur / 4.0);
-        
-        // Calculate Gaussian weight based on distance
         float dist = length(vec2(float(x), float(y)));
         float weight = gaussian(dist, sigma);
         
-        // Skip samples with negligible weight for performance
         if (weight > 0.001) {
-          colorSum += texture2D(u_texture, st + offset).rgb * weight;
+          colorSum += texture2D(u_texture, samplePos + offset).rgb * weight;
           weightSum += weight;
         }
       }
     }
     
-    texcolor = colorSum / weightSum;
+    return colorSum / weightSum;
   } else {
-    texcolor = texture2D(u_texture, st).rgb;
+    return texture2D(u_texture, samplePos).rgb;
   }
+}
+
+// Apply contrast and lightness adjustments
+vec3 adjustColor(vec3 color) {
+  color = (color - 0.5) * u_contrast + 0.5;
+  color = color + u_lightness;
+  return clamp(color, 0.0, 1.0);
+}
+
+void main() {
+  vec2 st = v_texCoord;
   
-  // Apply contrast adjustment
-  texcolor = (texcolor - 0.5) * u_contrast + 0.5;
-  
-  // Apply lightness adjustment
-  texcolor = texcolor + u_lightness;
-  
-  texcolor = clamp(texcolor, 0.0, 1.0);
+  // Sample for display/blending purposes (non-pixelated for smooth result)
+  vec3 texcolor = adjustColor(sampleWithBlur(st));
   
   // Generate fractal noise for paper texture
   vec2 p = vec2(0.0);
@@ -270,26 +288,47 @@ void main() {
   vec3 paper = u_paperColor - u_paperNoise * paperNoiseValue;
   float inkamount = 0.9 - u_inkNoise * paperNoiseValue;
   
-  // Convert RGB to CMYK
-  vec4 cmyk = rgbToCmyk(texcolor);
+  // For each channel, sample at grid-aligned position with that channel's angle
+  // This ensures consistent dot sizes within each rotated halftone cell
+  
+  // Cyan channel - pixelate to cyan's rotated grid
+  vec2 cyanSamplePos = pixelateToRotatedGrid(st, u_frequency, u_cyanAngle);
+  vec3 cyanColor = adjustColor(sampleWithBlur(cyanSamplePos));
+  vec4 cyanCmyk = rgbToCmyk(cyanColor);
+  
+  // Magenta channel - pixelate to magenta's rotated grid
+  vec2 magentaSamplePos = pixelateToRotatedGrid(st, u_frequency, u_magentaAngle);
+  vec3 magentaColor = adjustColor(sampleWithBlur(magentaSamplePos));
+  vec4 magentaCmyk = rgbToCmyk(magentaColor);
+  
+  // Yellow channel - pixelate to yellow's rotated grid
+  vec2 yellowSamplePos = pixelateToRotatedGrid(st, u_frequency, u_yellowAngle);
+  vec3 yellowColor = adjustColor(sampleWithBlur(yellowSamplePos));
+  vec4 yellowCmyk = rgbToCmyk(yellowColor);
+  
+  // Black channel - pixelate to black's rotated grid
+  vec2 blackSamplePos = pixelateToRotatedGrid(st, u_frequency, u_blackAngle);
+  vec3 blackColor = adjustColor(sampleWithBlur(blackSamplePos));
+  vec4 blackCmyk = rgbToCmyk(blackColor);
   
   // Generate halftone dots for each channel
+  // Each channel uses its own grid-aligned CMYK sample for consistent dots
   float c = 0.0, m = 0.0, y = 0.0, k = 0.0;
   
-  if (u_showCyan && cmyk.x > 0.001) {
-    c = halftoneChannel(st, cmyk.x, u_cyanAngle, u_roughness, u_fuzz, paperNoiseValue);
+  if (u_showCyan && cyanCmyk.x > 0.001) {
+    c = halftoneChannel(st, cyanCmyk.x, u_cyanAngle, u_roughness, u_fuzz, paperNoiseValue);
   }
   
-  if (u_showMagenta && cmyk.y > 0.001) {
-    m = halftoneChannel(st, cmyk.y, u_magentaAngle, u_roughness, u_fuzz, paperNoiseValue);
+  if (u_showMagenta && magentaCmyk.y > 0.001) {
+    m = halftoneChannel(st, magentaCmyk.y, u_magentaAngle, u_roughness, u_fuzz, paperNoiseValue);
   }
   
-  if (u_showYellow && cmyk.z > 0.001) {
-    y = halftoneChannel(st, cmyk.z, u_yellowAngle, u_roughness, u_fuzz, paperNoiseValue);
+  if (u_showYellow && yellowCmyk.z > 0.001) {
+    y = halftoneChannel(st, yellowCmyk.z, u_yellowAngle, u_roughness, u_fuzz, paperNoiseValue);
   }
   
-  if (u_showBlack && cmyk.w > 0.1) {
-    k = halftoneChannel(st, cmyk.w, u_blackAngle, u_roughness, u_fuzz, paperNoiseValue);
+  if (u_showBlack && blackCmyk.w > 0.1) {
+    k = halftoneChannel(st, blackCmyk.w, u_blackAngle, u_roughness, u_fuzz, paperNoiseValue);
   }
   
   // Start with paper color
