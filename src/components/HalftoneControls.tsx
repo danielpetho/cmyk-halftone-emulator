@@ -44,6 +44,8 @@ export interface HalftoneSettings {
   setRandomness: (v: number[]) => void;
   contrast: number[];
   setContrast: (v: number[]) => void;
+  lightness: number[];
+  setLightness: (v: number[]) => void;
   blur: number[];
   setBlur: (v: number[]) => void;
   threshold: number[];
@@ -126,6 +128,8 @@ export function HalftoneControls({
     setRandomness,
     contrast,
     setContrast,
+    lightness,
+    setLightness,
     blur,
     setBlur,
     threshold,
@@ -368,6 +372,27 @@ export function HalftoneControls({
 
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
+                  <Label className="text-sm">Lightness: {lightness[0].toFixed(2)}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Adjusts the overall brightness of the image before halftone processing</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Slider
+                  value={lightness}
+                  onValueChange={setLightness}
+                  min={-0.5}
+                  max={0.5}
+                  step={0.01}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
                   <Label className="text-sm">Blur (Pre-filter): {blur[0].toFixed(1)}px</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -408,7 +433,7 @@ export function HalftoneControls({
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <Slider value={frequency} onValueChange={setFrequency} min={50} max={200} step={5} />
+                <Slider value={frequency} onValueChange={setFrequency} min={20} max={200} step={5} />
               </div>
 
               <div className="space-y-2">

@@ -9,6 +9,7 @@ import { useIsMobile } from "./ui/use-mobile";
 import { Sidebar } from "./Sidebar";
 import { MobileSidebar } from "./MobileSidebar";
 import { HalftoneSettings } from "./HalftoneControls";
+import { ZoomControls } from "./ZoomControls";
 
 interface WebGLHalftoneProcessorProps {
   imageFile: File | null;
@@ -50,6 +51,7 @@ export function WebGLHalftoneProcessor({
   const [inkNoise, setInkNoise] = useState([0.6]);
   const [randomness, setRandomness] = useState([0.2]);
   const [contrast, setContrast] = useState([1.0]);
+  const [lightness, setLightness] = useState([0.0]);
   const [blur, setBlur] = useState([1.0]);
   const [threshold, setThreshold] = useState([0.05]);
   const [glVersion, setGlVersion] = useState(0);
@@ -158,6 +160,18 @@ export function WebGLHalftoneProcessor({
     width: 0,
     height: 0,
   });
+
+  // Zoom state
+  const MIN_ZOOM = 0.25;
+  const MAX_ZOOM = 4.0;
+  const ZOOM_STEP = 0.25;
+  const PAN_SENSITIVITY = 0.5; // Reduce pan movement sensitivity
+  const [zoom, setZoom] = useState(1.0);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const lastTouchDistance = useRef<number | null>(null);
+  const lastPanPosition = useRef<{ x: number; y: number } | null>(null);
+  const isPanning = useRef(false);
+  const [isSpaceHeld, setIsSpaceHeld] = useState(false);
 
   // Video controls state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -382,6 +396,201 @@ export function WebGLHalftoneProcessor({
     setIsRecording(false);
   }, []);
 
+  // Zoom handlers
+  const handleZoomIn = useCallback(() => {
+    setZoom((z) => Math.min(z + ZOOM_STEP, MAX_ZOOM));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom((z) => Math.max(z - ZOOM_STEP, MIN_ZOOM));
+  }, []);
+
+  const handleFitToView = useCallback(() => {
+    setZoom(1.0);
+    setPanOffset({ x: 0, y: 0 });
+  }, []);
+
+  // Space key listener for pan mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && !e.repeat) {
+        e.preventDefault();
+        setIsSpaceHeld(true);
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        setIsSpaceHeld(false);
+        isPanning.current = false;
+        lastPanPosition.current = null;
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
+  // Touch handlers refs for pinch zoom and two-finger pan
+  const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
+  const zoomRef = useRef(zoom);
+  
+  // Keep zoomRef in sync
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+
+  // Native event listeners for wheel and touch (need { passive: false } to preventDefault)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Wheel handler
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Trackpad pinch zoom sets ctrlKey to true
+      if (e.ctrlKey || e.metaKey) {
+        // Pinch zoom
+        const WHEEL_ZOOM_STEP = 0.02;
+        const delta = e.deltaY > 0 ? -WHEEL_ZOOM_STEP : WHEEL_ZOOM_STEP;
+        setZoom((z) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z + delta)));
+      } else {
+        // Two-finger scroll = pan (with sensitivity)
+        setPanOffset((prev) => ({
+          x: prev.x - e.deltaX * PAN_SENSITIVITY,
+          y: prev.y - e.deltaY * PAN_SENSITIVITY,
+        }));
+      }
+    };
+
+    // Touch start handler
+    const handleTouchStart = (e: TouchEvent) => {
+      e.stopPropagation();
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        lastTouchDistance.current = Math.sqrt(dx * dx + dy * dy);
+        lastTouchCenter.current = {
+          x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+          y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        };
+        isPanning.current = true;
+      } else if (e.touches.length === 1 && zoomRef.current > 1) {
+        lastPanPosition.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        };
+        isPanning.current = true;
+      }
+    };
+
+    // Touch move handler
+    const handleTouchMove = (e: TouchEvent) => {
+      e.stopPropagation();
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        
+        // Pinch zoom
+        if (lastTouchDistance.current !== null) {
+          const scale = distance / lastTouchDistance.current;
+          if (Math.abs(scale - 1) > 0.01) {
+            setZoom((z) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z * scale)));
+          }
+          lastTouchDistance.current = distance;
+        }
+        
+        // Two-finger pan
+        if (lastTouchCenter.current) {
+          const deltaX = (centerX - lastTouchCenter.current.x) * PAN_SENSITIVITY;
+          const deltaY = (centerY - lastTouchCenter.current.y) * PAN_SENSITIVITY;
+          setPanOffset((prev) => ({
+            x: prev.x + deltaX,
+            y: prev.y + deltaY,
+          }));
+        }
+        
+        lastTouchCenter.current = { x: centerX, y: centerY };
+      } else if (e.touches.length === 1 && isPanning.current && lastPanPosition.current) {
+        const deltaX = (e.touches[0].clientX - lastPanPosition.current.x) * PAN_SENSITIVITY;
+        const deltaY = (e.touches[0].clientY - lastPanPosition.current.y) * PAN_SENSITIVITY;
+        setPanOffset((prev) => ({
+          x: prev.x + deltaX,
+          y: prev.y + deltaY,
+        }));
+        lastPanPosition.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        };
+      }
+    };
+
+    // Touch end handler
+    const handleTouchEnd = (e: TouchEvent) => {
+      e.stopPropagation();
+      lastTouchDistance.current = null;
+      lastTouchCenter.current = null;
+      lastPanPosition.current = null;
+      isPanning.current = false;
+    };
+
+    // Add listeners with passive: false to allow preventDefault
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    container.addEventListener("touchstart", handleTouchStart, { passive: false });
+    container.addEventListener("touchmove", handleTouchMove, { passive: false });
+    container.addEventListener("touchend", handleTouchEnd, { passive: false });
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, []);
+
+  // Mouse pan (drag when zoomed in OR when space is held)
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Allow panning when zoomed in OR when holding space
+    if ((zoom > 1 || isSpaceHeld) && e.button === 0) {
+      lastPanPosition.current = { x: e.clientX, y: e.clientY };
+      isPanning.current = true;
+    }
+  }, [zoom, isSpaceHeld]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isPanning.current && lastPanPosition.current) {
+      const deltaX = (e.clientX - lastPanPosition.current.x) * PAN_SENSITIVITY;
+      const deltaY = (e.clientY - lastPanPosition.current.y) * PAN_SENSITIVITY;
+      
+      setPanOffset((prev) => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY,
+      }));
+      
+      lastPanPosition.current = { x: e.clientX, y: e.clientY };
+    }
+  }, []);
+
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    lastPanPosition.current = null;
+    isPanning.current = false;
+  }, []);
+
   // Format time in MM:SS format
   const formatTime = (seconds: number): string => {
     if (isNaN(seconds)) return "0:00";
@@ -492,6 +701,10 @@ export function WebGLHalftoneProcessor({
         u_contrast: gl.getUniformLocation(
           program,
           "u_contrast",
+        ),
+        u_lightness: gl.getUniformLocation(
+          program,
+          "u_lightness",
         ),
         u_blur: gl.getUniformLocation(
           program,
@@ -689,6 +902,8 @@ export function WebGLHalftoneProcessor({
         setUniform('u_randomness', () => gl.uniform1f(uniforms.u_randomness, randomness[0]));
       if (uniforms.u_contrast)
         setUniform('u_contrast', () => gl.uniform1f(uniforms.u_contrast, contrast[0]));
+      if (uniforms.u_lightness)
+        setUniform('u_lightness', () => gl.uniform1f(uniforms.u_lightness, lightness[0]));
       if (uniforms.u_blur) {
         setUniform('u_blur', () => gl.uniform1f(uniforms.u_blur, blur[0]));
       }
@@ -797,6 +1012,7 @@ export function WebGLHalftoneProcessor({
     inkNoise,
     randomness,
     contrast,
+    lightness,
     blur,
     threshold,
     cyanAngle,
@@ -1185,6 +1401,8 @@ export function WebGLHalftoneProcessor({
       setRandomness,
       contrast,
       setContrast,
+      lightness,
+      setLightness,
       blur,
       setBlur,
       threshold,
@@ -1227,6 +1445,7 @@ export function WebGLHalftoneProcessor({
       inkNoise,
       randomness,
       contrast,
+      lightness,
       blur,
       threshold,
       blendMode,
@@ -1283,19 +1502,46 @@ export function WebGLHalftoneProcessor({
   );
 
   const mainCanvas = (
-    <div
-      ref={containerRef}
-      className="w-full h-full flex items-center justify-center p-2 md:p-8"
-    >
-      <canvas
-        ref={canvasRef}
-        className="border border-border"
-        style={{
-          imageRendering: "auto",
-        }}
-      />
-      {/* Hidden video element for video texture source */}
-      <video ref={videoRef} style={{ display: "none" }} />
+    <div className="w-full h-full relative">
+      <div
+        ref={containerRef}
+        className="w-full h-full flex items-center p-2 md:p-8 justify-center overflow-hidden select-none overscroll-contain!"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{ touchAction: "none", cursor: (zoom > 1 || isSpaceHeld) ? "grab" : "default" }}
+      >
+        <div
+          style={{
+            transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
+            transformOrigin: "center center",
+            transition: isPanning.current ? "none" : "transform 0.1s ease-out",
+          }}
+        >
+          <canvas
+            ref={canvasRef}
+            className="border border-border"
+            style={{
+              imageRendering: "auto",
+            }}
+          />
+        </div>
+        {/* Hidden video element for video texture source */}
+        <video ref={videoRef} style={{ display: "none" }} />
+      </div>
+      
+      {/* Zoom controls overlay - outside the zoomable area */}
+      <div className="absolute bottom-4 right-4 md:bottom-0 z-10">
+        <ZoomControls
+          zoom={zoom}
+          minZoom={MIN_ZOOM}
+          maxZoom={MAX_ZOOM}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onFit={handleFitToView}
+        />
+      </div>
     </div>
   );
 
@@ -1305,7 +1551,7 @@ export function WebGLHalftoneProcessor({
         // Mobile Layout: Top/Bottom
         <div className="md:hidden h-screen flex flex-col">
           {/* Output area - top half */}
-          <div className="h-1/2 min-h-0 flex items-center justify-center">
+          <div className="h-1/2 min-h-0 flex items-center justify-center bg-white!">
             {mainCanvas}
           </div>
 
@@ -1324,9 +1570,9 @@ export function WebGLHalftoneProcessor({
         </div>
       ) : (
         // Desktop/Tablet Layout: Side by side
-        <div className="hidden md:grid md:grid-cols-4 h-screen">
-          {/* Left sidebar - Controls (1/4 width) */}
-          <div className="col-span-1 border-r border-border bg-card max-w-[300px]">
+        <div className="hidden md:flex h-screen overscroll-contain!">
+          {/* Left sidebar - Controls (fixed width) */}
+          <div className="w-[240px]! border-r border-border bg-card">
             <Sidebar
               settings={settings}
               imageFile={imageFile}
@@ -1338,8 +1584,8 @@ export function WebGLHalftoneProcessor({
             />
           </div>
 
-          {/* Right side - Main halftone image (3/4 width) */}
-          <div className="col-span-3 p-12">{mainCanvas}</div>
+          {/* Right side - Main halftone image (fills remaining space) */}
+          <div className="flex-1 overscroll-contain! overflow-hidden">{mainCanvas}</div>
         </div>
       )}
     </>

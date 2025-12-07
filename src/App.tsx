@@ -23,7 +23,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-screen bg-background overflow-hidden">
+    <div className="h-screen w-screen bg-background overflow-hidden overscroll-contain! ">
       {!mediaFile ? (
         <LandingPage
           onImageUpload={handleMediaUpload}

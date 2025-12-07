@@ -16,6 +16,7 @@ uniform float u_paperNoise;
 uniform float u_inkNoise;
 uniform float u_randomness;
 uniform float u_contrast;
+uniform float u_lightness;
 uniform float u_blur;
 uniform float u_threshold;
 uniform vec3 u_paperColor;
@@ -244,6 +245,10 @@ void main() {
   
   // Apply contrast adjustment
   texcolor = (texcolor - 0.5) * u_contrast + 0.5;
+  
+  // Apply lightness adjustment
+  texcolor = texcolor + u_lightness;
+  
   texcolor = clamp(texcolor, 0.0, 1.0);
   
   // Generate fractal noise for paper texture
