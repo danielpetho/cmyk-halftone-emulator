@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { LandingPage } from "./components/LandingPage";
 import { WebGLHalftoneProcessor } from "./components/WebGLHalftoneProcessor";
 
@@ -7,20 +7,24 @@ export default function App() {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [isVideo, setIsVideo] = useState(false);
 
-  const handleMediaUpload = (file: File) => {
+  const handleMediaUpload = useCallback((file: File) => {
+    // Revoke old URL if exists
+    if (mediaUrl) {
+      URL.revokeObjectURL(mediaUrl);
+    }
     setMediaFile(file);
     setMediaUrl(URL.createObjectURL(file));
     setIsVideo(file.type.startsWith("video/"));
-  };
+  }, [mediaUrl]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     if (mediaUrl) {
       URL.revokeObjectURL(mediaUrl);
     }
     setMediaFile(null);
     setMediaUrl(null);
     setIsVideo(false);
-  };
+  }, [mediaUrl]);
 
   return (
     <div className="h-screen w-screen bg-background overflow-hidden overscroll-contain! ">
@@ -34,6 +38,7 @@ export default function App() {
         <WebGLHalftoneProcessor 
           imageFile={mediaFile}
           onReset={handleReset}
+          onSwapMedia={handleMediaUpload}
           isVideo={isVideo}
         />
       )}

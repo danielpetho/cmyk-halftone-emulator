@@ -1,5 +1,5 @@
 import { Button } from "./ui/button";
-import { Download, Trash2 } from "lucide-react";
+import { Download, RotateCcw, ImagePlus } from "lucide-react";
 import { HalftoneControls, HalftoneSettings } from "./HalftoneControls";
 import { VideoControlsProps } from "./VideoControls";
 
@@ -8,7 +8,9 @@ interface MobileSidebarProps {
   imageFile: File | null;
   isVideo?: boolean;
   previewVideoUrl?: string | null;
-  onReset: () => void;
+  onResetDefaults: () => void;
+  onGoHome: () => void;
+  onSwapMedia: () => void;
   onDownload: () => void;
   videoControls?: VideoControlsProps;
 }
@@ -18,7 +20,9 @@ export function MobileSidebar({
   imageFile,
   isVideo = false,
   previewVideoUrl,
-  onReset,
+  onResetDefaults,
+  onGoHome,
+  onSwapMedia,
   onDownload,
   videoControls,
 }: MobileSidebarProps) {
@@ -38,16 +42,20 @@ export function MobileSidebar({
 
       {/* Fixed buttons at bottom */}
       <div className="p-4 border-t border-border space-y-2 bg-card">
-        <Button variant="outline" onClick={onReset} className="w-full cursor-pointer">
-          <Trash2 className="w-4 h-4 mr-2" />
-          Reset
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onResetDefaults} className="flex-1 cursor-pointer" title="Reset to defaults">
+            <RotateCcw className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" onClick={onSwapMedia} className="flex-1 cursor-pointer" title="Change image/video">
+            <ImagePlus className="w-4 h-4" />
+          </Button>
+        </div>
         <Button
           onClick={onDownload}
           className="w-full bg-black text-white hover:bg-black/90 hover:scale-105 active:scale-95 transition-all duration-150 border-0 cursor-pointer"
         >
           <Download className="w-4 h-4 mr-2" />
-          {isVideo ? "Download Current Frame" : "Download Image"}
+          {isVideo ? "Download Frame" : "Download"}
         </Button>
       </div>
     </div>

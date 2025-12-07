@@ -433,7 +433,7 @@ export function HalftoneControls({
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <Slider value={frequency} onValueChange={setFrequency} min={20} max={200} step={5} />
+                <Slider value={frequency} onValueChange={setFrequency} min={20} max={300} step={1} />
               </div>
 
               <div className="space-y-2">
@@ -630,38 +630,42 @@ export function HalftoneControls({
               <Knob
                 value={cyanAngle[0]}
                 onChange={(value) => setCyanAngle([value])}
-                min={-90}
-                max={90}
+                min={0}
+                max={360}
                 step={5}
                 label="Cyan"
                 size={35}
+                fullRotation
               />
               <Knob
                 value={magentaAngle[0]}
                 onChange={(value) => setMagentaAngle([value])}
-                min={-90}
-                max={90}
+                min={0}
+                max={360}
                 step={5}
                 label="Magenta"
                 size={35}
+                fullRotation
               />
               <Knob
                 value={yellowAngle[0]}
                 onChange={(value) => setYellowAngle([value])}
-                min={-90}
-                max={90}
+                min={0}
+                max={360}
                 step={5}
                 label="Yellow"
                 size={35}
+                fullRotation
               />
               <Knob
                 value={blackAngle[0]}
                 onChange={(value) => setBlackAngle([value])}
-                min={-90}
-                max={90}
+                min={0}
+                max={360}
                 step={5}
                 label="Black"
                 size={35}
+                fullRotation
               />
             </div>
           </AccordionContent>

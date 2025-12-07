@@ -1,5 +1,5 @@
 import { Button } from "./ui/button";
-import { Download, Trash2 } from "lucide-react";
+import { Download, RotateCcw, ImagePlus } from "lucide-react";
 import { HalftoneControls, HalftoneSettings } from "./HalftoneControls";
 import { VideoControlsProps } from "./VideoControls";
 
@@ -8,7 +8,9 @@ interface SidebarProps {
   imageFile: File | null;
   isVideo?: boolean;
   previewVideoUrl?: string | null;
-  onReset: () => void;
+  onResetDefaults: () => void;
+  onGoHome: () => void;
+  onSwapMedia: () => void;
   onDownload: () => void;
   videoControls?: VideoControlsProps;
 }
@@ -18,16 +20,26 @@ export function Sidebar({
   imageFile,
   isVideo = false,
   previewVideoUrl,
-  onReset,
+  onResetDefaults,
+  onGoHome,
+  onSwapMedia,
   onDownload,
   videoControls,
 }: SidebarProps) {
   return (
-    <div className="h-screen flex flex-col">
-      {/* Title section */}
-      <div className="p-4 border-b border-border">
-        <h2 className="text-lg font-semibold uppercase text-center">Halftone Controls</h2>
-      </div>
+    <div className="h-screen flex flex-col w-[320px]!">
+      {/* Header with logo/home button */}
+
+        <button
+          onClick={onGoHome}
+          className=" h-16 rounded-md hover:bg-muted transition-colors cursor-pointer flex items-center p-4 border-b border-border"
+          title="Back to home"
+        >
+          <img src="/favicon-32x32.png" alt="Home" className="w-5 h-5" />
+          <h2 className="text-sm font-semibold uppercase">CMYK Halftone Emulator</h2>
+
+        </button>
+
 
       {/* Scrollable accordion controls */}
       <div className="flex-1 overflow-y-auto min-h-0">
@@ -40,12 +52,16 @@ export function Sidebar({
         />
       </div>
 
-      {/* Reset and Download buttons */}
+      {/* Action buttons */}
       <div className="p-4 border-t border-border space-y-2">
-        <Button variant="outline" onClick={onReset} className="w-full cursor-pointer">
-          <Trash2 className="w-4 h-4 mr-2" />
-          Reset
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onResetDefaults} className="flex-1 cursor-pointer" title="Reset to defaults">
+            <RotateCcw className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" onClick={onSwapMedia} className="flex-1 cursor-pointer" title="Change image/video">
+            <ImagePlus className="w-4 h-4" />
+          </Button>
+        </div>
         <Button
           onClick={onDownload}
           className="w-full bg-black text-white hover:bg-black/90 hover:scale-105 active:scale-95 transition-all duration-150 border-0 cursor-pointer"

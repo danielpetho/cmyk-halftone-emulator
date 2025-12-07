@@ -14,6 +14,7 @@ import { ZoomControls } from "./ZoomControls";
 interface WebGLHalftoneProcessorProps {
   imageFile: File | null;
   onReset: () => void;
+  onSwapMedia: (file: File) => void;
   isVideo?: boolean;
 }
 
@@ -24,12 +25,46 @@ export interface WebGLHalftoneProcessorReturn {
 
 // Advanced halftone shader adapted from Stefan Gustavson's demo
 // Import shader source files
-import vertexShaderSource from './shaders/halftone-vertex.glsl?raw';
-import fragmentShaderSource from './shaders/halftone-fragment.glsl?raw';
+import vertexShaderSource from "./shaders/halftone-vertex.glsl?raw";
+import fragmentShaderSource from "./shaders/halftone-fragment.glsl?raw";
+
+// Default values for all controls
+const DEFAULTS = {
+  frequency: [85],
+  dotSize: [1.0],
+  roughness: [2.0],
+  fuzz: [0.1],
+  paperNoise: [0.0],
+  inkNoise: [0.6],
+  randomness: [0.2],
+  contrast: [1.0],
+  lightness: [0.0],
+  blur: [1.0],
+  threshold: [0.05],
+  blendMode: 0,
+  cyanAngle: [15],
+  magentaAngle: [75],
+  yellowAngle: [0],
+  blackAngle: [45],
+  cyanInk: "#00FFFF",
+  cyanAlpha: [0.95],
+  magentaInk: "#FF00FF",
+  magentaAlpha: [0.95],
+  yellowInk: "#FFFF00",
+  yellowAlpha: [0.95],
+  blackInk: "#000000",
+  blackAlpha: [0.95],
+  paperColor: "#f8f4e8",
+  showCyan: true,
+  showMagenta: true,
+  showYellow: true,
+  showBlack: true,
+};
 
 export function WebGLHalftoneProcessor({
   imageFile,
   onReset,
+  onSwapMedia,
   isVideo = false,
 }: WebGLHalftoneProcessorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -42,20 +77,21 @@ export function WebGLHalftoneProcessor({
     [key: string]: WebGLUniformLocation | null;
   }>({});
   const renderRef = useRef<(() => void) | null>(null);
+  const swapInputRef = useRef<HTMLInputElement>(null);
 
-  const [frequency, setFrequency] = useState([85]);
-  const [dotSize, setDotSize] = useState([1.0]);
-  const [roughness, setRoughness] = useState([2.0]);
-  const [fuzz, setFuzz] = useState([0.1]);
-  const [paperNoise, setPaperNoise] = useState([0.0]);
-  const [inkNoise, setInkNoise] = useState([0.6]);
-  const [randomness, setRandomness] = useState([0.2]);
-  const [contrast, setContrast] = useState([1.0]);
-  const [lightness, setLightness] = useState([0.0]);
-  const [blur, setBlur] = useState([1.0]);
-  const [threshold, setThreshold] = useState([0.05]);
+  const [frequency, setFrequency] = useState(DEFAULTS.frequency);
+  const [dotSize, setDotSize] = useState(DEFAULTS.dotSize);
+  const [roughness, setRoughness] = useState(DEFAULTS.roughness);
+  const [fuzz, setFuzz] = useState(DEFAULTS.fuzz);
+  const [paperNoise, setPaperNoise] = useState(DEFAULTS.paperNoise);
+  const [inkNoise, setInkNoise] = useState(DEFAULTS.inkNoise);
+  const [randomness, setRandomness] = useState(DEFAULTS.randomness);
+  const [contrast, setContrast] = useState(DEFAULTS.contrast);
+  const [lightness, setLightness] = useState(DEFAULTS.lightness);
+  const [blur, setBlur] = useState(DEFAULTS.blur);
+  const [threshold, setThreshold] = useState(DEFAULTS.threshold);
   const [glVersion, setGlVersion] = useState(0);
-  const [blendMode, setBlendMode] = useState(0); // 0 = subtractive, 1 = additive, 2 = normal
+  const [blendMode, setBlendMode] = useState(DEFAULTS.blendMode);
 
   const isMobile = useIsMobile();
 
@@ -71,14 +107,11 @@ export function WebGLHalftoneProcessor({
       requestAnimationFrame(() => {
         try {
           // Create a regular 2D canvas to copy the WebGL content
-          const downloadCanvas =
-            document.createElement("canvas");
+          const downloadCanvas = document.createElement("canvas");
           const downloadCtx = downloadCanvas.getContext("2d");
 
           if (!downloadCtx) {
-            console.error(
-              "Failed to create 2D context for download",
-            );
+            console.error("Failed to create 2D context for download");
             return;
           }
 
@@ -107,7 +140,7 @@ export function WebGLHalftoneProcessor({
               URL.revokeObjectURL(url);
             },
             "image/png",
-            1.0,
+            1.0
           );
         } catch (error) {
           console.error("Error downloading image:", error);
@@ -118,10 +151,7 @@ export function WebGLHalftoneProcessor({
             link.href = canvas.toDataURL("image/png");
             link.click();
           } catch (fallbackError) {
-            console.error(
-              "Fallback download also failed:",
-              fallbackError,
-            );
+            console.error("Fallback download also failed:", fallbackError);
           }
         }
       });
@@ -131,26 +161,72 @@ export function WebGLHalftoneProcessor({
   }, []);
 
   // Proper halftone screen angles
-  const [cyanAngle, setCyanAngle] = useState([15]);
-  const [magentaAngle, setMagentaAngle] = useState([-15]);
-  const [yellowAngle, setYellowAngle] = useState([0]);
-  const [blackAngle, setBlackAngle] = useState([45]);
+  const [cyanAngle, setCyanAngle] = useState(DEFAULTS.cyanAngle);
+  const [magentaAngle, setMagentaAngle] = useState(DEFAULTS.magentaAngle);
+  const [yellowAngle, setYellowAngle] = useState(DEFAULTS.yellowAngle);
+  const [blackAngle, setBlackAngle] = useState(DEFAULTS.blackAngle);
 
-  const [cyanInk, setCyanInk] = useState("#00FFFF");
-  const [cyanAlpha, setCyanAlpha] = useState([0.95]);
-  const [magentaInk, setMagentaInk] = useState("#FF00FF");
-  const [magentaAlpha, setMagentaAlpha] = useState([0.95]);
-  const [yellowInk, setYellowInk] = useState("#FFFF00");
-  const [yellowAlpha, setYellowAlpha] = useState([0.95]);
-  const [blackInk, setBlackInk] = useState("#000000");
-  const [blackAlpha, setBlackAlpha] = useState([0.95]);
-  const [paperColor, setPaperColor] = useState("#f8f4e8");
+  const [cyanInk, setCyanInk] = useState(DEFAULTS.cyanInk);
+  const [cyanAlpha, setCyanAlpha] = useState(DEFAULTS.cyanAlpha);
+  const [magentaInk, setMagentaInk] = useState(DEFAULTS.magentaInk);
+  const [magentaAlpha, setMagentaAlpha] = useState(DEFAULTS.magentaAlpha);
+  const [yellowInk, setYellowInk] = useState(DEFAULTS.yellowInk);
+  const [yellowAlpha, setYellowAlpha] = useState(DEFAULTS.yellowAlpha);
+  const [blackInk, setBlackInk] = useState(DEFAULTS.blackInk);
+  const [blackAlpha, setBlackAlpha] = useState(DEFAULTS.blackAlpha);
+  const [paperColor, setPaperColor] = useState(DEFAULTS.paperColor);
 
   // Layer visibility controls
-  const [showCyan, setShowCyan] = useState(true);
-  const [showMagenta, setShowMagenta] = useState(true);
-  const [showYellow, setShowYellow] = useState(true);
-  const [showBlack, setShowBlack] = useState(true);
+  const [showCyan, setShowCyan] = useState(DEFAULTS.showCyan);
+  const [showMagenta, setShowMagenta] = useState(DEFAULTS.showMagenta);
+  const [showYellow, setShowYellow] = useState(DEFAULTS.showYellow);
+  const [showBlack, setShowBlack] = useState(DEFAULTS.showBlack);
+
+  // Reset all controls to default values
+  const resetToDefaults = useCallback(() => {
+    setFrequency(DEFAULTS.frequency);
+    setDotSize(DEFAULTS.dotSize);
+    setRoughness(DEFAULTS.roughness);
+    setFuzz(DEFAULTS.fuzz);
+    setPaperNoise(DEFAULTS.paperNoise);
+    setInkNoise(DEFAULTS.inkNoise);
+    setRandomness(DEFAULTS.randomness);
+    setContrast(DEFAULTS.contrast);
+    setLightness(DEFAULTS.lightness);
+    setBlur(DEFAULTS.blur);
+    setThreshold(DEFAULTS.threshold);
+    setBlendMode(DEFAULTS.blendMode);
+    setCyanAngle(DEFAULTS.cyanAngle);
+    setMagentaAngle(DEFAULTS.magentaAngle);
+    setYellowAngle(DEFAULTS.yellowAngle);
+    setBlackAngle(DEFAULTS.blackAngle);
+    setCyanInk(DEFAULTS.cyanInk);
+    setCyanAlpha(DEFAULTS.cyanAlpha);
+    setMagentaInk(DEFAULTS.magentaInk);
+    setMagentaAlpha(DEFAULTS.magentaAlpha);
+    setYellowInk(DEFAULTS.yellowInk);
+    setYellowAlpha(DEFAULTS.yellowAlpha);
+    setBlackInk(DEFAULTS.blackInk);
+    setBlackAlpha(DEFAULTS.blackAlpha);
+    setPaperColor(DEFAULTS.paperColor);
+    setShowCyan(DEFAULTS.showCyan);
+    setShowMagenta(DEFAULTS.showMagenta);
+    setShowYellow(DEFAULTS.showYellow);
+    setShowBlack(DEFAULTS.showBlack);
+  }, []);
+
+  // Handle file swap
+  const handleSwapFile = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        onSwapMedia(file);
+      }
+      // Reset input so same file can be selected again
+      e.target.value = "";
+    },
+    [onSwapMedia]
+  );
 
   const [dimensions, setDimensions] = useState({
     width: 0,
@@ -178,10 +254,10 @@ export function WebGLHalftoneProcessor({
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState([1.0]);
-  
+
   // Separate URL for preview video
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
-  
+
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -191,11 +267,7 @@ export function WebGLHalftoneProcessor({
 
   // Helper function to create and compile shader
   const createShader = useCallback(
-    (
-      gl: WebGLRenderingContext,
-      type: number,
-      source: string,
-    ) => {
+    (gl: WebGLRenderingContext, type: number, source: string) => {
       const shader = gl.createShader(type);
       if (!shader) return null;
 
@@ -203,17 +275,14 @@ export function WebGLHalftoneProcessor({
       gl.compileShader(shader);
 
       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error(
-          "Shader compile error:",
-          gl.getShaderInfoLog(shader),
-        );
+        console.error("Shader compile error:", gl.getShaderInfoLog(shader));
         gl.deleteShader(shader);
         return null;
       }
 
       return shader;
     },
-    [],
+    []
   );
 
   // Helper function to create shader program
@@ -221,7 +290,7 @@ export function WebGLHalftoneProcessor({
     (
       gl: WebGLRenderingContext,
       vertexShader: WebGLShader,
-      fragmentShader: WebGLShader,
+      fragmentShader: WebGLShader
     ) => {
       const program = gl.createProgram();
       if (!program) return null;
@@ -231,31 +300,25 @@ export function WebGLHalftoneProcessor({
       gl.linkProgram(program);
 
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error(
-          "Program link error:",
-          gl.getProgramInfoLog(program),
-        );
+        console.error("Program link error:", gl.getProgramInfoLog(program));
         gl.deleteProgram(program);
         return null;
       }
 
       return program;
     },
-    [],
+    []
   );
 
   // Helper function to convert hex color to RGBA array
   const hexToRgba = useCallback(
-    (
-      hex: string,
-      alpha: number = 1.0,
-    ): [number, number, number, number] => {
+    (hex: string, alpha: number = 1.0): [number, number, number, number] => {
       const r = parseInt(hex.slice(1, 3), 16) / 255;
       const g = parseInt(hex.slice(3, 5), 16) / 255;
       const b = parseInt(hex.slice(5, 7), 16) / 255;
       return [r, g, b, alpha];
     },
-    [],
+    []
   );
 
   // Video control functions
@@ -272,39 +335,45 @@ export function WebGLHalftoneProcessor({
     }
   }, [isVideo, isPlaying]);
 
-  const handleSeek = useCallback((value: number[]) => {
-    const video = videoRef.current;
-    if (!video || !isVideo) return;
-    
-    const newTime = value[0];
-    video.currentTime = newTime;
-    setVideoProgress(newTime);
-  }, [isVideo]);
+  const handleSeek = useCallback(
+    (value: number[]) => {
+      const video = videoRef.current;
+      if (!video || !isVideo) return;
 
-  const handleSpeedChange = useCallback((value: number[]) => {
-    const video = videoRef.current;
-    if (!video || !isVideo) return;
-    
-    video.playbackRate = value[0];
-    setPlaybackSpeed(value);
-  }, [isVideo]);
+      const newTime = value[0];
+      video.currentTime = newTime;
+      setVideoProgress(newTime);
+    },
+    [isVideo]
+  );
+
+  const handleSpeedChange = useCallback(
+    (value: number[]) => {
+      const video = videoRef.current;
+      if (!video || !isVideo) return;
+
+      video.playbackRate = value[0];
+      setPlaybackSpeed(value);
+    },
+    [isVideo]
+  );
 
   const skipBackward = useCallback(() => {
     const video = videoRef.current;
     if (!video || !isVideo) return;
-    
+
     video.currentTime = Math.max(0, video.currentTime - 5);
   }, [isVideo]);
 
   const skipForward = useCallback(() => {
     const video = videoRef.current;
     if (!video || !isVideo) return;
-    
+
     video.currentTime = Math.min(video.duration, video.currentTime + 5);
   }, [isVideo]);
 
   // Track the selected mime type for the recording
-  const selectedMimeTypeRef = useRef<string>('video/mp4');
+  const selectedMimeTypeRef = useRef<string>("video/mp4");
 
   // Recording functions
   const startRecording = useCallback(() => {
@@ -313,69 +382,77 @@ export function WebGLHalftoneProcessor({
 
     try {
       // Detect if we're on mobile for adjusted settings
-      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(
+        navigator.userAgent
+      );
+
       // Use lower framerate and bitrate on mobile for better performance
       const targetFps = isMobileDevice ? 30 : 60;
       const bitrate = isMobileDevice ? 8000000 : 25000000; // 8 Mbps mobile, 25 Mbps desktop
-      
+
       // Get canvas stream
       const stream = canvas.captureStream(targetFps);
-      
+
       let mediaRecorder: MediaRecorder;
-      
+
       // Try different codecs in order of preference
       // Prefer MP4 for maximum playback compatibility (works everywhere)
       const codecOptions = [
-        { mimeType: 'video/mp4;codecs=avc1.42E01E', videoBitsPerSecond: bitrate },
-        { mimeType: 'video/mp4;codecs=avc1', videoBitsPerSecond: bitrate },
-        { mimeType: 'video/mp4', videoBitsPerSecond: bitrate },
+        {
+          mimeType: "video/mp4;codecs=avc1.42E01E",
+          videoBitsPerSecond: bitrate,
+        },
+        { mimeType: "video/mp4;codecs=avc1", videoBitsPerSecond: bitrate },
+        { mimeType: "video/mp4", videoBitsPerSecond: bitrate },
         // Fallback to WebM for Firefox and older browsers
-        { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: bitrate },
-        { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: bitrate },
-        { mimeType: 'video/webm', videoBitsPerSecond: bitrate },
+        { mimeType: "video/webm;codecs=vp9", videoBitsPerSecond: bitrate },
+        { mimeType: "video/webm;codecs=vp8", videoBitsPerSecond: bitrate },
+        { mimeType: "video/webm", videoBitsPerSecond: bitrate },
       ];
-      
-      let selectedCodec: { mimeType: string; videoBitsPerSecond: number } | null = null;
+
+      let selectedCodec: {
+        mimeType: string;
+        videoBitsPerSecond: number;
+      } | null = null;
       for (const option of codecOptions) {
         if (MediaRecorder.isTypeSupported(option.mimeType)) {
           selectedCodec = option;
           break;
         }
       }
-      
+
       if (selectedCodec) {
         mediaRecorder = new MediaRecorder(stream, selectedCodec);
         selectedMimeTypeRef.current = selectedCodec.mimeType;
       } else {
         mediaRecorder = new MediaRecorder(stream);
-        selectedMimeTypeRef.current = 'video/mp4'; // fallback
+        selectedMimeTypeRef.current = "video/mp4"; // fallback
       }
-      
+
       recordedChunksRef.current = [];
-      
+
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           recordedChunksRef.current.push(event.data);
         }
       };
-      
+
       mediaRecorder.onstop = () => {
         // Determine file extension based on selected codec
-        const isMP4 = selectedMimeTypeRef.current.includes('mp4');
-        const extension = isMP4 ? 'mp4' : 'webm';
-        const mimeType = isMP4 ? 'video/mp4' : 'video/webm';
-        
+        const isMP4 = selectedMimeTypeRef.current.includes("mp4");
+        const extension = isMP4 ? "mp4" : "webm";
+        const mimeType = isMP4 ? "video/mp4" : "video/webm";
+
         const blob = new Blob(recordedChunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
         link.download = `halftone_video_${Date.now()}.${extension}`;
         link.click();
         URL.revokeObjectURL(url);
         recordedChunksRef.current = [];
       };
-      
+
       mediaRecorder.start(1000); // Collect data every second
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
@@ -387,11 +464,11 @@ export function WebGLHalftoneProcessor({
   const stopRecording = useCallback(() => {
     const mediaRecorder = mediaRecorderRef.current;
     if (!mediaRecorder) return;
-    
-    if (mediaRecorder.state !== 'inactive') {
+
+    if (mediaRecorder.state !== "inactive") {
       mediaRecorder.stop();
     }
-    
+
     mediaRecorderRef.current = null;
     setIsRecording(false);
   }, []);
@@ -425,10 +502,10 @@ export function WebGLHalftoneProcessor({
         lastPanPosition.current = null;
       }
     };
-    
+
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
-    
+
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
@@ -438,7 +515,7 @@ export function WebGLHalftoneProcessor({
   // Touch handlers refs for pinch zoom and two-finger pan
   const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
   const zoomRef = useRef(zoom);
-  
+
   // Keep zoomRef in sync
   useEffect(() => {
     zoomRef.current = zoom;
@@ -453,7 +530,7 @@ export function WebGLHalftoneProcessor({
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Trackpad pinch zoom sets ctrlKey to true
       if (e.ctrlKey || e.metaKey) {
         // Pinch zoom
@@ -496,13 +573,13 @@ export function WebGLHalftoneProcessor({
       e.stopPropagation();
       if (e.touches.length === 2) {
         e.preventDefault();
-        
+
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
         const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        
+
         // Pinch zoom
         if (lastTouchDistance.current !== null) {
           const scale = distance / lastTouchDistance.current;
@@ -511,21 +588,29 @@ export function WebGLHalftoneProcessor({
           }
           lastTouchDistance.current = distance;
         }
-        
+
         // Two-finger pan
         if (lastTouchCenter.current) {
-          const deltaX = (centerX - lastTouchCenter.current.x) * PAN_SENSITIVITY;
-          const deltaY = (centerY - lastTouchCenter.current.y) * PAN_SENSITIVITY;
+          const deltaX =
+            (centerX - lastTouchCenter.current.x) * PAN_SENSITIVITY;
+          const deltaY =
+            (centerY - lastTouchCenter.current.y) * PAN_SENSITIVITY;
           setPanOffset((prev) => ({
             x: prev.x + deltaX,
             y: prev.y + deltaY,
           }));
         }
-        
+
         lastTouchCenter.current = { x: centerX, y: centerY };
-      } else if (e.touches.length === 1 && isPanning.current && lastPanPosition.current) {
-        const deltaX = (e.touches[0].clientX - lastPanPosition.current.x) * PAN_SENSITIVITY;
-        const deltaY = (e.touches[0].clientY - lastPanPosition.current.y) * PAN_SENSITIVITY;
+      } else if (
+        e.touches.length === 1 &&
+        isPanning.current &&
+        lastPanPosition.current
+      ) {
+        const deltaX =
+          (e.touches[0].clientX - lastPanPosition.current.x) * PAN_SENSITIVITY;
+        const deltaY =
+          (e.touches[0].clientY - lastPanPosition.current.y) * PAN_SENSITIVITY;
         setPanOffset((prev) => ({
           x: prev.x + deltaX,
           y: prev.y + deltaY,
@@ -548,8 +633,12 @@ export function WebGLHalftoneProcessor({
 
     // Add listeners with passive: false to allow preventDefault
     container.addEventListener("wheel", handleWheel, { passive: false });
-    container.addEventListener("touchstart", handleTouchStart, { passive: false });
-    container.addEventListener("touchmove", handleTouchMove, { passive: false });
+    container.addEventListener("touchstart", handleTouchStart, {
+      passive: false,
+    });
+    container.addEventListener("touchmove", handleTouchMove, {
+      passive: false,
+    });
     container.addEventListener("touchend", handleTouchEnd, { passive: false });
 
     return () => {
@@ -561,26 +650,29 @@ export function WebGLHalftoneProcessor({
   }, []);
 
   // Mouse pan (drag when zoomed in OR when space is held)
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    // Allow panning when zoomed in OR when holding space
-    if ((zoom > 1 || isSpaceHeld) && e.button === 0) {
-      lastPanPosition.current = { x: e.clientX, y: e.clientY };
-      isPanning.current = true;
-    }
-  }, [zoom, isSpaceHeld]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      // Allow panning when zoomed in OR when holding space
+      if ((zoom > 1 || isSpaceHeld) && e.button === 0) {
+        lastPanPosition.current = { x: e.clientX, y: e.clientY };
+        isPanning.current = true;
+      }
+    },
+    [zoom, isSpaceHeld]
+  );
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (isPanning.current && lastPanPosition.current) {
       const deltaX = (e.clientX - lastPanPosition.current.x) * PAN_SENSITIVITY;
       const deltaY = (e.clientY - lastPanPosition.current.y) * PAN_SENSITIVITY;
-      
+
       setPanOffset((prev) => ({
         x: prev.x + deltaX,
         y: prev.y + deltaY,
       }));
-      
+
       lastPanPosition.current = { x: e.clientX, y: e.clientY };
     }
   }, []);
@@ -596,7 +688,7 @@ export function WebGLHalftoneProcessor({
     if (isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   // Initialize WebGL
@@ -625,14 +717,11 @@ export function WebGLHalftoneProcessor({
     }
 
     // Enable standard derivatives extension for anti-aliasing
-    const derivativesExt = gl.getExtension(
-      "OES_standard_derivatives",
-    );
+    const derivativesExt = gl.getExtension("OES_standard_derivatives");
     if (derivativesExt) {
-
     } else {
       console.warn(
-        "OES_standard_derivatives extension not available - using fallback anti-aliasing",
+        "OES_standard_derivatives extension not available - using fallback anti-aliasing"
       );
     }
 
@@ -643,12 +732,12 @@ export function WebGLHalftoneProcessor({
       const vertexShader = createShader(
         gl,
         gl.VERTEX_SHADER,
-        vertexShaderSource,
+        vertexShaderSource
       );
       const fragmentShader = createShader(
         gl,
         gl.FRAGMENT_SHADER,
-        fragmentShaderSource,
+        fragmentShaderSource
       );
 
       if (!vertexShader || !fragmentShader) {
@@ -657,11 +746,7 @@ export function WebGLHalftoneProcessor({
       }
 
       // Create program
-      const program = createProgram(
-        gl,
-        vertexShader,
-        fragmentShader,
-      );
+      const program = createProgram(gl, vertexShader, fragmentShader);
       if (!program) {
         console.error("Failed to create program");
         return;
@@ -672,104 +757,32 @@ export function WebGLHalftoneProcessor({
       // Get uniform locations
       const uniforms = {
         u_texture: gl.getUniformLocation(program, "u_texture"),
-        u_resolution: gl.getUniformLocation(
-          program,
-          "u_resolution",
-        ),
-        u_frequency: gl.getUniformLocation(
-          program,
-          "u_frequency",
-        ),
+        u_resolution: gl.getUniformLocation(program, "u_resolution"),
+        u_frequency: gl.getUniformLocation(program, "u_frequency"),
         u_dotSize: gl.getUniformLocation(program, "u_dotSize"),
-        u_roughness: gl.getUniformLocation(
-          program,
-          "u_roughness",
-        ),
+        u_roughness: gl.getUniformLocation(program, "u_roughness"),
         u_fuzz: gl.getUniformLocation(program, "u_fuzz"),
-        u_paperNoise: gl.getUniformLocation(
-          program,
-          "u_paperNoise",
-        ),
-        u_inkNoise: gl.getUniformLocation(
-          program,
-          "u_inkNoise",
-        ),
-        u_randomness: gl.getUniformLocation(
-          program,
-          "u_randomness",
-        ),
-        u_contrast: gl.getUniformLocation(
-          program,
-          "u_contrast",
-        ),
-        u_lightness: gl.getUniformLocation(
-          program,
-          "u_lightness",
-        ),
-        u_blur: gl.getUniformLocation(
-          program,
-          "u_blur",
-        ),
-        u_threshold: gl.getUniformLocation(
-          program,
-          "u_threshold",
-        ),
-        u_paperColor: gl.getUniformLocation(
-          program,
-          "u_paperColor",
-        ),
-        u_cyanAngle: gl.getUniformLocation(
-          program,
-          "u_cyanAngle",
-        ),
-        u_magentaAngle: gl.getUniformLocation(
-          program,
-          "u_magentaAngle",
-        ),
-        u_yellowAngle: gl.getUniformLocation(
-          program,
-          "u_yellowAngle",
-        ),
-        u_blackAngle: gl.getUniformLocation(
-          program,
-          "u_blackAngle",
-        ),
-        u_cyanColor: gl.getUniformLocation(
-          program,
-          "u_cyanColor",
-        ),
-        u_magentaColor: gl.getUniformLocation(
-          program,
-          "u_magentaColor",
-        ),
-        u_yellowColor: gl.getUniformLocation(
-          program,
-          "u_yellowColor",
-        ),
-        u_blackColor: gl.getUniformLocation(
-          program,
-          "u_blackColor",
-        ),
-        u_showCyan: gl.getUniformLocation(
-          program,
-          "u_showCyan",
-        ),
-        u_showMagenta: gl.getUniformLocation(
-          program,
-          "u_showMagenta",
-        ),
-        u_showYellow: gl.getUniformLocation(
-          program,
-          "u_showYellow",
-        ),
-        u_showBlack: gl.getUniformLocation(
-          program,
-          "u_showBlack",
-        ),
-        u_blendMode: gl.getUniformLocation(
-          program,
-          "u_blendMode",
-        ),
+        u_paperNoise: gl.getUniformLocation(program, "u_paperNoise"),
+        u_inkNoise: gl.getUniformLocation(program, "u_inkNoise"),
+        u_randomness: gl.getUniformLocation(program, "u_randomness"),
+        u_contrast: gl.getUniformLocation(program, "u_contrast"),
+        u_lightness: gl.getUniformLocation(program, "u_lightness"),
+        u_blur: gl.getUniformLocation(program, "u_blur"),
+        u_threshold: gl.getUniformLocation(program, "u_threshold"),
+        u_paperColor: gl.getUniformLocation(program, "u_paperColor"),
+        u_cyanAngle: gl.getUniformLocation(program, "u_cyanAngle"),
+        u_magentaAngle: gl.getUniformLocation(program, "u_magentaAngle"),
+        u_yellowAngle: gl.getUniformLocation(program, "u_yellowAngle"),
+        u_blackAngle: gl.getUniformLocation(program, "u_blackAngle"),
+        u_cyanColor: gl.getUniformLocation(program, "u_cyanColor"),
+        u_magentaColor: gl.getUniformLocation(program, "u_magentaColor"),
+        u_yellowColor: gl.getUniformLocation(program, "u_yellowColor"),
+        u_blackColor: gl.getUniformLocation(program, "u_blackColor"),
+        u_showCyan: gl.getUniformLocation(program, "u_showCyan"),
+        u_showMagenta: gl.getUniformLocation(program, "u_showMagenta"),
+        u_showYellow: gl.getUniformLocation(program, "u_showYellow"),
+        u_showBlack: gl.getUniformLocation(program, "u_showBlack"),
+        u_blendMode: gl.getUniformLocation(program, "u_blendMode"),
       };
 
       uniformsRef.current = uniforms;
@@ -789,14 +802,8 @@ export function WebGLHalftoneProcessor({
       gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
       // Set up attributes
-      const positionLoc = gl.getAttribLocation(
-        program,
-        "a_position",
-      );
-      const texCoordLoc = gl.getAttribLocation(
-        program,
-        "a_texCoord",
-      );
+      const positionLoc = gl.getAttribLocation(program, "a_position");
+      const texCoordLoc = gl.getAttribLocation(program, "a_texCoord");
 
       if (positionLoc === -1 || texCoordLoc === -1) {
         console.error("Failed to get attribute locations");
@@ -806,22 +813,8 @@ export function WebGLHalftoneProcessor({
       gl.enableVertexAttribArray(positionLoc);
       gl.enableVertexAttribArray(texCoordLoc);
 
-      gl.vertexAttribPointer(
-        positionLoc,
-        2,
-        gl.FLOAT,
-        false,
-        16,
-        0,
-      );
-      gl.vertexAttribPointer(
-        texCoordLoc,
-        2,
-        gl.FLOAT,
-        false,
-        16,
-        8,
-      );
+      gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 16, 0);
+      gl.vertexAttribPointer(texCoordLoc, 2, gl.FLOAT, false, 16, 8);
 
       setGlVersion((v) => v + 1);
 
@@ -879,110 +872,152 @@ export function WebGLHalftoneProcessor({
       };
 
       if (uniforms.u_texture)
-        setUniform('u_texture', () => gl.uniform1i(uniforms.u_texture, 0));
+        setUniform("u_texture", () => gl.uniform1i(uniforms.u_texture, 0));
       if (uniforms.u_resolution)
-        setUniform('u_resolution', () => gl.uniform2f(
-          uniforms.u_resolution,
-          dimensions.width,
-          dimensions.height,
-        ));
+        setUniform("u_resolution", () =>
+          gl.uniform2f(
+            uniforms.u_resolution,
+            dimensions.width,
+            dimensions.height
+          )
+        );
       if (uniforms.u_frequency)
-        setUniform('u_frequency', () => gl.uniform1f(uniforms.u_frequency, frequency[0]));
+        setUniform("u_frequency", () =>
+          gl.uniform1f(uniforms.u_frequency, frequency[0])
+        );
       if (uniforms.u_dotSize)
-        setUniform('u_dotSize', () => gl.uniform1f(uniforms.u_dotSize, dotSize[0]));
+        setUniform("u_dotSize", () =>
+          gl.uniform1f(uniforms.u_dotSize, dotSize[0])
+        );
       if (uniforms.u_roughness)
-        setUniform('u_roughness', () => gl.uniform1f(uniforms.u_roughness, roughness[0]));
+        setUniform("u_roughness", () =>
+          gl.uniform1f(uniforms.u_roughness, roughness[0])
+        );
       if (uniforms.u_fuzz)
-        setUniform('u_fuzz', () => gl.uniform1f(uniforms.u_fuzz, fuzz[0]));
+        setUniform("u_fuzz", () => gl.uniform1f(uniforms.u_fuzz, fuzz[0]));
       if (uniforms.u_paperNoise)
-        setUniform('u_paperNoise', () => gl.uniform1f(uniforms.u_paperNoise, paperNoise[0]));
+        setUniform("u_paperNoise", () =>
+          gl.uniform1f(uniforms.u_paperNoise, paperNoise[0])
+        );
       if (uniforms.u_inkNoise)
-        setUniform('u_inkNoise', () => gl.uniform1f(uniforms.u_inkNoise, inkNoise[0]));
+        setUniform("u_inkNoise", () =>
+          gl.uniform1f(uniforms.u_inkNoise, inkNoise[0])
+        );
       if (uniforms.u_randomness)
-        setUniform('u_randomness', () => gl.uniform1f(uniforms.u_randomness, randomness[0]));
+        setUniform("u_randomness", () =>
+          gl.uniform1f(uniforms.u_randomness, randomness[0])
+        );
       if (uniforms.u_contrast)
-        setUniform('u_contrast', () => gl.uniform1f(uniforms.u_contrast, contrast[0]));
+        setUniform("u_contrast", () =>
+          gl.uniform1f(uniforms.u_contrast, contrast[0])
+        );
       if (uniforms.u_lightness)
-        setUniform('u_lightness', () => gl.uniform1f(uniforms.u_lightness, lightness[0]));
+        setUniform("u_lightness", () =>
+          gl.uniform1f(uniforms.u_lightness, lightness[0])
+        );
       if (uniforms.u_blur) {
-        setUniform('u_blur', () => gl.uniform1f(uniforms.u_blur, blur[0]));
+        setUniform("u_blur", () => gl.uniform1f(uniforms.u_blur, blur[0]));
       }
       if (uniforms.u_threshold)
-        setUniform('u_threshold', () => gl.uniform1f(uniforms.u_threshold, threshold[0]));
+        setUniform("u_threshold", () =>
+          gl.uniform1f(uniforms.u_threshold, threshold[0])
+        );
 
       const paperCol = hexToRgba(paperColor);
       if (uniforms.u_paperColor)
-        setUniform('u_paperColor', () => gl.uniform3f(
-          uniforms.u_paperColor,
-          paperCol[0],
-          paperCol[1],
-          paperCol[2],
-        ));
+        setUniform("u_paperColor", () =>
+          gl.uniform3f(
+            uniforms.u_paperColor,
+            paperCol[0],
+            paperCol[1],
+            paperCol[2]
+          )
+        );
 
       if (uniforms.u_cyanAngle)
-        setUniform('u_cyanAngle', () => gl.uniform1f(uniforms.u_cyanAngle, cyanAngle[0]));
+        setUniform("u_cyanAngle", () =>
+          gl.uniform1f(uniforms.u_cyanAngle, cyanAngle[0])
+        );
       if (uniforms.u_magentaAngle)
-        setUniform('u_magentaAngle', () => gl.uniform1f(uniforms.u_magentaAngle, magentaAngle[0]));
+        setUniform("u_magentaAngle", () =>
+          gl.uniform1f(uniforms.u_magentaAngle, magentaAngle[0])
+        );
       if (uniforms.u_yellowAngle)
-        setUniform('u_yellowAngle', () => gl.uniform1f(uniforms.u_yellowAngle, yellowAngle[0]));
+        setUniform("u_yellowAngle", () =>
+          gl.uniform1f(uniforms.u_yellowAngle, yellowAngle[0])
+        );
       if (uniforms.u_blackAngle)
-        setUniform('u_blackAngle', () => gl.uniform1f(uniforms.u_blackAngle, blackAngle[0]));
+        setUniform("u_blackAngle", () =>
+          gl.uniform1f(uniforms.u_blackAngle, blackAngle[0])
+        );
 
       const cyanColor = hexToRgba(cyanInk, cyanAlpha[0]);
-      const magentaColor = hexToRgba(
-        magentaInk,
-        magentaAlpha[0],
-      );
+      const magentaColor = hexToRgba(magentaInk, magentaAlpha[0]);
       const yellowColor = hexToRgba(yellowInk, yellowAlpha[0]);
       const blackColor = hexToRgba(blackInk, blackAlpha[0]);
 
       if (uniforms.u_cyanColor)
-        setUniform('u_cyanColor', () => gl.uniform4f(
-          uniforms.u_cyanColor,
-          cyanColor[0],
-          cyanColor[1],
-          cyanColor[2],
-          cyanColor[3],
-        ));
+        setUniform("u_cyanColor", () =>
+          gl.uniform4f(
+            uniforms.u_cyanColor,
+            cyanColor[0],
+            cyanColor[1],
+            cyanColor[2],
+            cyanColor[3]
+          )
+        );
       if (uniforms.u_magentaColor)
-        setUniform('u_magentaColor', () => gl.uniform4f(
-          uniforms.u_magentaColor,
-          magentaColor[0],
-          magentaColor[1],
-          magentaColor[2],
-          magentaColor[3],
-        ));
+        setUniform("u_magentaColor", () =>
+          gl.uniform4f(
+            uniforms.u_magentaColor,
+            magentaColor[0],
+            magentaColor[1],
+            magentaColor[2],
+            magentaColor[3]
+          )
+        );
       if (uniforms.u_yellowColor)
-        setUniform('u_yellowColor', () => gl.uniform4f(
-          uniforms.u_yellowColor,
-          yellowColor[0],
-          yellowColor[1],
-          yellowColor[2],
-          yellowColor[3],
-        ));
+        setUniform("u_yellowColor", () =>
+          gl.uniform4f(
+            uniforms.u_yellowColor,
+            yellowColor[0],
+            yellowColor[1],
+            yellowColor[2],
+            yellowColor[3]
+          )
+        );
       if (uniforms.u_blackColor)
-        setUniform('u_blackColor', () => gl.uniform4f(
-          uniforms.u_blackColor,
-          blackColor[0],
-          blackColor[1],
-          blackColor[2],
-          blackColor[3],
-        ));
+        setUniform("u_blackColor", () =>
+          gl.uniform4f(
+            uniforms.u_blackColor,
+            blackColor[0],
+            blackColor[1],
+            blackColor[2],
+            blackColor[3]
+          )
+        );
 
       if (uniforms.u_showCyan)
-        setUniform('u_showCyan', () => gl.uniform1i(uniforms.u_showCyan, showCyan ? 1 : 0));
+        setUniform("u_showCyan", () =>
+          gl.uniform1i(uniforms.u_showCyan, showCyan ? 1 : 0)
+        );
       if (uniforms.u_showMagenta)
-        setUniform('u_showMagenta', () => gl.uniform1i(
-          uniforms.u_showMagenta,
-          showMagenta ? 1 : 0,
-        ));
+        setUniform("u_showMagenta", () =>
+          gl.uniform1i(uniforms.u_showMagenta, showMagenta ? 1 : 0)
+        );
       if (uniforms.u_showYellow)
-        setUniform('u_showYellow', () => gl.uniform1i(uniforms.u_showYellow, showYellow ? 1 : 0));
+        setUniform("u_showYellow", () =>
+          gl.uniform1i(uniforms.u_showYellow, showYellow ? 1 : 0)
+        );
       if (uniforms.u_showBlack)
-        setUniform('u_showBlack', () => gl.uniform1i(uniforms.u_showBlack, showBlack ? 1 : 0));
+        setUniform("u_showBlack", () =>
+          gl.uniform1i(uniforms.u_showBlack, showBlack ? 1 : 0)
+        );
 
       if (uniforms.u_blendMode)
-        setUniform('u_blendMode', () => gl.uniform1i(uniforms.u_blendMode, blendMode));
+        setUniform("u_blendMode", () =>
+          gl.uniform1i(uniforms.u_blendMode, blendMode)
+        );
 
       // Check for GL errors
       const error = gl.getError();
@@ -1046,7 +1081,7 @@ export function WebGLHalftoneProcessor({
     if (imageFile && isVideo) {
       const url = URL.createObjectURL(imageFile);
       setPreviewVideoUrl(url);
-      
+
       return () => {
         URL.revokeObjectURL(url);
         setPreviewVideoUrl(null);
@@ -1059,7 +1094,10 @@ export function WebGLHalftoneProcessor({
   // Cleanup recording on unmount or file change
   useEffect(() => {
     return () => {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
         mediaRecorderRef.current.stop();
       }
     };
@@ -1099,40 +1137,43 @@ export function WebGLHalftoneProcessor({
     };
 
     const fitCanvasToContainer = (width: number, height: number) => {
-          const canvas = canvasRef.current;
-          const container = containerRef.current;
-          if (canvas && container) {
-            const styles = window.getComputedStyle(container);
-            const padX =
-              parseFloat(styles.paddingLeft || "0") +
-              parseFloat(styles.paddingRight || "0");
-            const padY =
-              parseFloat(styles.paddingTop || "0") +
-              parseFloat(styles.paddingBottom || "0");
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (canvas && container) {
+        const styles = window.getComputedStyle(container);
+        const padX =
+          parseFloat(styles.paddingLeft || "0") +
+          parseFloat(styles.paddingRight || "0");
+        const padY =
+          parseFloat(styles.paddingTop || "0") +
+          parseFloat(styles.paddingBottom || "0");
 
         const containerW = Math.max(1, (container.clientWidth || width) - padX);
-        const containerH = Math.max(1, (container.clientHeight || height) - padY);
+        const containerH = Math.max(
+          1,
+          (container.clientHeight || height) - padY
+        );
         const scale = Math.min(containerW / width, containerH / height);
         const displayW = Math.max(1, Math.floor(width * scale));
         const displayH = Math.max(1, Math.floor(height * scale));
-            const dpr = window.devicePixelRatio || 1;
+        const dpr = window.devicePixelRatio || 1;
 
-            // CSS size (display)
-            canvas.style.width = displayW + "px";
-            canvas.style.height = displayH + "px";
-            canvas.style.display = "block";
+        // CSS size (display)
+        canvas.style.width = displayW + "px";
+        canvas.style.height = displayH + "px";
+        canvas.style.display = "block";
 
-            // Internal resolution for crisp output
-            canvas.width = Math.round(displayW * dpr);
-            canvas.height = Math.round(displayH * dpr);
-            gl.viewport(0, 0, canvas.width, canvas.height);
+        // Internal resolution for crisp output
+        canvas.width = Math.round(displayW * dpr);
+        canvas.height = Math.round(displayH * dpr);
+        gl.viewport(0, 0, canvas.width, canvas.height);
 
-            // Use display size for shader aspect correction
-            setDimensions({
-              width: displayW,
-              height: displayH,
-            });
-          }
+        // Use display size for shader aspect correction
+        setDimensions({
+          width: displayW,
+          height: displayH,
+        });
+      }
     };
 
     if (isVideo) {
@@ -1144,7 +1185,7 @@ export function WebGLHalftoneProcessor({
       }
 
       const url = URL.createObjectURL(imageFile);
-      
+
       video.loop = true;
       video.muted = true;
       video.playsInline = true;
@@ -1178,7 +1219,7 @@ export function WebGLHalftoneProcessor({
                 gl.RGBA,
                 gl.RGBA,
                 gl.UNSIGNED_BYTE,
-                video,
+                video
               );
               // Use renderRef to always get the latest render function
               if (renderRef.current) {
@@ -1245,7 +1286,6 @@ export function WebGLHalftoneProcessor({
       const img = new Image();
 
       img.onload = () => {
-
         // Calculate dimensions - increased for better output quality
         const maxDimension = 600;
         let { width, height } = img;
@@ -1270,7 +1310,7 @@ export function WebGLHalftoneProcessor({
             gl.RGBA,
             gl.RGBA,
             gl.UNSIGNED_BYTE,
-            img,
+            img
           );
 
           textureRef.current = texture;
@@ -1278,30 +1318,30 @@ export function WebGLHalftoneProcessor({
           // Fit canvas to container while preserving aspect ratio, then render
           requestAnimationFrame(() => {
             fitCanvasToContainer(width, height);
-          render();
-        });
-      } catch (error) {
-        console.error("Failed to upload texture:", error);
-        gl.deleteTexture(texture);
-      }
-    };
+            render();
+          });
+        } catch (error) {
+          console.error("Failed to upload texture:", error);
+          gl.deleteTexture(texture);
+        }
+      };
 
-    img.onerror = () => {
-      console.error("Failed to load image");
-    };
+      img.onerror = () => {
+        console.error("Failed to load image");
+      };
 
-    const url = URL.createObjectURL(imageFile);
-    img.src = url;
+      const url = URL.createObjectURL(imageFile);
+      img.src = url;
 
-    return () => {
-      URL.revokeObjectURL(url);
-      if (textureRef.current && glRef.current) {
-        glRef.current.deleteTexture(textureRef.current);
-        textureRef.current = null;
-      }
-    };
+      return () => {
+        URL.revokeObjectURL(url);
+        if (textureRef.current && glRef.current) {
+          glRef.current.deleteTexture(textureRef.current);
+          textureRef.current = null;
+        }
+      };
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageFile, isVideo, isMobile, glVersion]);
 
   // Render when parameters change
@@ -1336,26 +1376,14 @@ export function WebGLHalftoneProcessor({
         parseFloat(styles.paddingTop || "0") +
         parseFloat(styles.paddingBottom || "0");
 
-      const containerW = Math.max(
-        1,
-        container.clientWidth - padX,
-      );
-      const containerH = Math.max(
-        1,
-        container.clientHeight - padY,
-      );
+      const containerW = Math.max(1, container.clientWidth - padX);
+      const containerH = Math.max(1, container.clientHeight - padY);
       const scale = Math.min(
         containerW / imageSize.width,
-        containerH / imageSize.height,
+        containerH / imageSize.height
       );
-      const displayW = Math.max(
-        1,
-        Math.floor(imageSize.width * scale),
-      );
-      const displayH = Math.max(
-        1,
-        Math.floor(imageSize.height * scale),
-      );
+      const displayW = Math.max(1, Math.floor(imageSize.width * scale));
+      const displayH = Math.max(1, Math.floor(imageSize.height * scale));
       const dpr = window.devicePixelRatio || 1;
 
       canvas.style.width = displayW + "px";
@@ -1371,10 +1399,7 @@ export function WebGLHalftoneProcessor({
     window.addEventListener("orientationchange", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener(
-        "orientationchange",
-        handleResize,
-      );
+      window.removeEventListener("orientationchange", handleResize);
     };
   }, [imageSize, render]);
 
@@ -1510,11 +1535,16 @@ export function WebGLHalftoneProcessor({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        style={{ touchAction: "none", cursor: (zoom > 1 || isSpaceHeld) ? "grab" : "default" }}
+        style={{
+          touchAction: "none",
+          cursor: zoom > 1 || isSpaceHeld ? "grab" : "default",
+        }}
       >
         <div
           style={{
-            transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
+            transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${
+              panOffset.y / zoom
+            }px)`,
             transformOrigin: "center center",
             transition: isPanning.current ? "none" : "transform 0.1s ease-out",
           }}
@@ -1530,7 +1560,7 @@ export function WebGLHalftoneProcessor({
         {/* Hidden video element for video texture source */}
         <video ref={videoRef} style={{ display: "none" }} />
       </div>
-      
+
       {/* Zoom controls overlay - outside the zoomable area */}
       <div className="absolute bottom-4 right-4 md:bottom-0 z-10">
         <ZoomControls
@@ -1545,11 +1575,32 @@ export function WebGLHalftoneProcessor({
     </div>
   );
 
+  const triggerSwapMedia = useCallback(() => {
+    swapInputRef.current?.click();
+  }, []);
+
   return (
     <>
+      {/* Hidden file input for swapping media */}
+      <input
+        ref={swapInputRef}
+        type="file"
+        accept="image/*,video/*"
+        onChange={handleSwapFile}
+        className="hidden"
+      />
+
       {isMobile ? (
         // Mobile Layout: Top/Bottom
         <div className="md:hidden h-screen flex flex-col">
+          <button
+            onClick={() => {}}
+            className="w-7 h-7 rounded-md hover:bg-muted transition-colors cursor-pointer flex items-center "
+            title="Back to home"
+          >
+            <img src="/favicon-32x32.png" alt="Home" className="w-8 h-8" />
+          </button>
+
           {/* Output area - top half */}
           <div className="h-1/2 min-h-0 flex items-center justify-center bg-white!">
             {mainCanvas}
@@ -1562,7 +1613,9 @@ export function WebGLHalftoneProcessor({
               imageFile={imageFile}
               isVideo={isVideo}
               previewVideoUrl={previewVideoUrl}
-              onReset={onReset}
+              onResetDefaults={resetToDefaults}
+              onGoHome={onReset}
+              onSwapMedia={triggerSwapMedia}
               onDownload={handleDownload}
               videoControls={videoControlsProps}
             />
@@ -1572,20 +1625,24 @@ export function WebGLHalftoneProcessor({
         // Desktop/Tablet Layout: Side by side
         <div className="hidden md:flex h-screen overscroll-contain!">
           {/* Left sidebar - Controls (fixed width) */}
-          <div className="w-[240px]! border-r border-border bg-card">
+          <div className="border-r border-border bg-card" style={{ width: '320px', minWidth: '320px' }}>
             <Sidebar
               settings={settings}
               imageFile={imageFile}
               isVideo={isVideo}
               previewVideoUrl={previewVideoUrl}
-              onReset={onReset}
+              onResetDefaults={resetToDefaults}
+              onGoHome={onReset}
+              onSwapMedia={triggerSwapMedia}
               onDownload={handleDownload}
               videoControls={videoControlsProps}
             />
           </div>
 
           {/* Right side - Main halftone image (fills remaining space) */}
-          <div className="flex-1 overscroll-contain! overflow-hidden">{mainCanvas}</div>
+          <div className="flex-1 overscroll-contain! overflow-hidden">
+            {mainCanvas}
+          </div>
         </div>
       )}
     </>

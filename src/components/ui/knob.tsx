@@ -9,6 +9,7 @@ interface KnobProps {
   size?: number;
   label?: string;
   className?: string;
+  fullRotation?: boolean; // For 360° continuous rotation (angles)
 }
 
 export function Knob({
@@ -19,7 +20,8 @@ export function Knob({
   step = 5,
   size = 40,
   label,
-  className = ''
+  className = '',
+  fullRotation = false
 }: KnobProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [startAngle, setStartAngle] = useState(0);
@@ -29,8 +31,12 @@ export function Knob({
   // Normalize value to 0-1 range
   const normalizedValue = (value - min) / (max - min);
   
-  // Convert to angle (-135° to +135°, giving 270° total range)
-  const angle = -135 + (normalizedValue * 270);
+  // Convert to visual angle
+  // For fullRotation: 0° value = pointing up (0° visual), full range maps to 360°
+  // For standard: -135° to +135° (270° range with dead zone at bottom)
+  const angle = fullRotation 
+    ? normalizedValue * 360  // 0° at top, clockwise
+    : -135 + (normalizedValue * 270);
 
   // Get angle from pointer position relative to knob center
   const getAngleFromPointer = useCallback((clientX: number, clientY: number) => {
@@ -78,7 +84,7 @@ export function Knob({
     
     // Convert angle change to value change
     const valueRange = max - min;
-    const angleRange = 270; // Our knob has 270° of rotation
+    const angleRange = fullRotation ? 360 : 270; // Full rotation or 270° with dead zone
     const deltaValue = (deltaAngle / angleRange) * valueRange;
     
     let newValue = startValue + deltaValue;
@@ -86,13 +92,19 @@ export function Knob({
     // Apply step rounding
     newValue = Math.round(newValue / step) * step;
     
-    // Clamp to bounds
-    newValue = Math.max(min, Math.min(max, newValue));
+    // Clamp to bounds (for fullRotation, wrap around instead)
+    if (fullRotation) {
+      // Wrap around for continuous rotation
+      while (newValue < min) newValue += (max - min);
+      while (newValue >= max) newValue -= (max - min);
+    } else {
+      newValue = Math.max(min, Math.min(max, newValue));
+    }
     
     if (newValue !== value) {
       onChange(newValue);
     }
-  }, [isDragging, startAngle, startValue, min, max, step, value, onChange, getAngleFromPointer]);
+  }, [isDragging, startAngle, startValue, min, max, step, value, onChange, getAngleFromPointer, fullRotation]);
 
   const handlePointerUp = useCallback(() => {
     setIsDragging(false);

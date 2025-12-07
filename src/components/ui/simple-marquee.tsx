@@ -67,7 +67,7 @@ const SimpleMarquee = ({
 
   const { scrollY } = useScroll({
     container:
-      (scrollContainer as RefObject<HTMLDivElement>) || innerContainer.current,
+      (scrollContainer as RefObject<HTMLDivElement>) || innerContainer,
   })
 
   const scrollVelocity = useVelocity(scrollY)
