@@ -162,6 +162,14 @@ float halftoneChannel(vec2 st, float channelValue, float angle, float roughness,
   // Rotate coordinate system for screen angle
   vec2 rotatedSt = rotationMatrix(angle) * aspectCorrectedSt * u_frequency;
   
+  // Compute stable pixel width BEFORE fract() to avoid discontinuity artifacts
+  // fwidth on continuous coords gives the actual pixel footprint
+#ifdef GL_OES_standard_derivatives
+  float pixelWidth = length(fwidth(rotatedSt)) * 2.0;
+#else
+  float pixelWidth = 0.02;
+#endif
+  
   vec2 gridPos = floor(rotatedSt);
   
   // Add randomness to dot positions if enabled
@@ -177,7 +185,6 @@ float halftoneChannel(vec2 st, float channelValue, float angle, float roughness,
   
   // Get local coordinates within grid cell
   vec2 uv = 2.0 * fract(rotatedSt) - 1.0;
-  vec2 gridCenter = vec2(0.0, 0.0);
   
   // Calculate base intensity and radius with enhanced contrast
   float intensity = clamp(channelValue, 0.0, 1.0);
@@ -193,11 +200,19 @@ float halftoneChannel(vec2 st, float channelValue, float angle, float roughness,
     baseRadius += roughness * paperNoise * intensity; // Scale roughness by intensity
   }
   
-  // Standard circular dot
-  float radius = baseRadius - length(uv);
+  // Standard circular dot - distance from center
+  float dist = length(uv);
+  float radius = baseRadius - dist;
   
-  // Create dot with anti-aliasing and fuzz
-  return 1.0 - (1.0 - aasmoothstep(-fuzz, 0.0, radius)) * (1.0 - aastep(0.0, radius));
+  // Use stable pixel width for anti-aliasing
+  // Clamp to reasonable range to avoid artifacts
+  float aaWidth = clamp(pixelWidth, 0.01, 0.1);
+  
+  // Simple anti-aliased dot with fuzz
+  // radius > 0 means inside the dot
+  float edge = smoothstep(-fuzz - aaWidth, aaWidth, radius);
+  
+  return edge;
 }
 
 // Gaussian function for blur weights
@@ -327,7 +342,7 @@ void main() {
     y = halftoneChannel(st, yellowCmyk.z, u_yellowAngle, u_roughness, u_fuzz, paperNoiseValue);
   }
   
-  if (u_showBlack && blackCmyk.w > 0.1) {
+  if (u_showBlack && blackCmyk.w > 0.001) {
     k = halftoneChannel(st, blackCmyk.w, u_blackAngle, u_roughness, u_fuzz, paperNoiseValue);
   }
   
