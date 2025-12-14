@@ -433,7 +433,7 @@ export function HalftoneControls({
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <Slider value={frequency} onValueChange={setFrequency} min={20} max={300} step={1} />
+                <Slider value={frequency} onValueChange={setFrequency} min={20} max={500} step={1} />
               </div>
 
               <div className="space-y-2">

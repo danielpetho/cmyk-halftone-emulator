@@ -32,8 +32,8 @@ export function ImageUpload({
       );
 
       if (mediaFile) {
-        // 5MB limit for images, 100MB for videos
-        const maxSize = mediaFile.type.startsWith("video/") ? 100 : 5;
+        // 50MB limit for images, 100MB for videos
+        const maxSize = mediaFile.type.startsWith("video/") ? 100 : 50;
         if (mediaFile.size <= maxSize * 1024 * 1024) {
           onImageUpload(mediaFile);
         }
@@ -90,7 +90,7 @@ export function ImageUpload({
                 Drag and drop an image or video here
               </p>
               <p className="text-sm text-muted-foreground mb-4">
-                or click to browse (Images: 5MB, Videos: 100MB max)
+                or click to browse (Images: 50MB, Videos: 100MB max)
               </p>
               <Button asChild>
                 <label className="cursor-pointer">
