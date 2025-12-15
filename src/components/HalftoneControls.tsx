@@ -178,7 +178,7 @@ export function HalftoneControls({
       <Accordion type="multiple" defaultValue={defaultOpenSections}>
         {/* Video Controls - only visible for videos */}
         {isVideo && videoControls && (
-          <AccordionItem value="video-controls" className="px-4">
+          <AccordionItem value="video-controls" className="">
             <AccordionTrigger className="text-lg uppercase items-center">
               Video Controls
             </AccordionTrigger>
@@ -284,7 +284,7 @@ export function HalftoneControls({
 
         {/* Original Video/Image */}
         {showOriginalMedia && (
-          <AccordionItem value="original-media" className="px-4">
+          <AccordionItem value="original-media" className="">
             <AccordionTrigger className="text-lg uppercase items-center">
               Original {isVideo ? "Video" : "Image"}
             </AccordionTrigger>
@@ -314,7 +314,7 @@ export function HalftoneControls({
         )}
 
         {/* Halftone Settings */}
-        <AccordionItem value="halftone-settings" className="px-4">
+        <AccordionItem value="halftone-settings" className="">
           <AccordionTrigger className="text-lg uppercase items-center">
             Halftone Settings
           </AccordionTrigger>
@@ -530,7 +530,7 @@ export function HalftoneControls({
         </AccordionItem>
 
         {/* Ink Colors */}
-        <AccordionItem value="ink-colors" className="px-4">
+        <AccordionItem value="ink-colors" className="">
           <AccordionTrigger className="text-lg uppercase items-center">
             Ink Colors
           </AccordionTrigger>
@@ -586,7 +586,7 @@ export function HalftoneControls({
         </AccordionItem>
 
         {/* Layer Visibility */}
-        <AccordionItem value="layer-visibility" className="px-4">
+        <AccordionItem value="layer-visibility" className="">
           <AccordionTrigger className="text-lg uppercase items-center">
             Layer Visibility
           </AccordionTrigger>
@@ -621,7 +621,7 @@ export function HalftoneControls({
         </AccordionItem>
 
         {/* Screen Angles */}
-        <AccordionItem value="screen-angles" className="px-4">
+        <AccordionItem value="screen-angles" className="">
           <AccordionTrigger className="text-lg uppercase items-center">
             Screen Angles
           </AccordionTrigger>
