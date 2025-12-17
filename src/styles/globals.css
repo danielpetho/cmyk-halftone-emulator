@@ -230,3 +230,47 @@ html {
 body {
   font-family: "Bricolage Grotesque", sans-serif;
 }
+
+/* Slider hit area enhancement */
+[data-slot="slider-track"] {
+  position: relative !important;
+}
+
+[data-slot="slider-track"]::after {
+  content: '' !important;
+  position: absolute !important;
+  top: -0.5rem !important;
+  bottom: -0.5rem !important;
+  left: -0.25rem !important;
+  right: -0.25rem !important;
+  border-radius: 9999px !important;
+  pointer-events: none !important;
+}
+
+[data-slot="slider-thumb"] {
+  position: relative !important;
+  cursor: pointer !important;
+}
+
+[data-slot="slider-thumb"]:active {
+  cursor: grabbing !important;
+}
+
+[data-slot="slider-thumb"]::after {
+  content: '' !important;
+  position: absolute !important;
+  top: -0.5rem !important;
+  bottom: -0.5rem !important;
+  left: -0.5rem !important;
+  right: -0.5rem !important;
+  border-radius: 9999px !important;
+  pointer-events: none !important;
+}
+
+[data-slot="slider"] {
+  cursor: pointer !important;
+}
+
+[data-slot="slider"]:active {
+  cursor: grabbing !important;
+}
