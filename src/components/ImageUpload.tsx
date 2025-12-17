@@ -1,12 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { Button } from "./ui/button";
-import { Card } from "./ui/card";
-import {
-  Upload,
-  Trash2,
-  Image as ImageIcon,
-  Video,
-} from "lucide-react";
+import { Upload, Trash2 } from "lucide-react";
 
 interface ImageUploadProps {
   onImageUpload: (file: File) => void;
@@ -14,28 +8,43 @@ interface ImageUploadProps {
   onReset: () => void;
 }
 
+const isImageFile = (file: File): boolean => {
+  if (file.type.startsWith("image/")) return true;
+  const ext = file.name.toLowerCase().split(".").pop();
+  return ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp", "tiff"].includes(ext || "");
+};
+
+const isVideoFile = (file: File): boolean => {
+  if (file.type.startsWith("video/")) return true;
+  const ext = file.name.toLowerCase().split(".").pop();
+  return ["mp4", "mov", "webm", "avi", "mkv", "m4v", "3gp"].includes(ext || "");
+};
+
+const isMediaFile = (file: File): boolean => isImageFile(file) || isVideoFile(file);
+
 export function ImageUpload({
   onImageUpload,
   uploadedImage,
   onReset,
 }: ImageUploadProps) {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragOver(false);
+      setError(null);
 
       const files: File[] = Array.from(e.dataTransfer.files);
-      const mediaFile = files.find((file: File) =>
-        file.type.startsWith("image/") || file.type.startsWith("video/"),
-      );
+      const mediaFile = files.find((file: File) => isMediaFile(file));
 
       if (mediaFile) {
-        // 50MB limit for images, 100MB for videos
-        const maxSize = mediaFile.type.startsWith("video/") ? 100 : 50;
+        const maxSize = 100; // 100MB limit
         if (mediaFile.size <= maxSize * 1024 * 1024) {
           onImageUpload(mediaFile);
+        } else {
+          setError(`File too large. Max size: ${maxSize}MB`);
         }
       }
     },
@@ -54,12 +63,20 @@ export function ImageUpload({
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      setError(null);
       const file = e.target.files?.[0];
       if (file) {
-        // 5MB limit for images, 100MB for videos
-        const maxSize = file.type.startsWith("video/") ? 100 : 5;
+        // Check if it's a valid media file
+        if (!isMediaFile(file)) {
+          setError("Please select an image or video file");
+          e.target.value = "";
+          return;
+        }
+        const maxSize = 100; // 100MB limit
         if (file.size <= maxSize * 1024 * 1024) {
           onImageUpload(file);
+        } else {
+          setError(`File too large. Max size: ${maxSize}MB`);
         }
       }
       // Reset input
@@ -90,8 +107,11 @@ export function ImageUpload({
                 Drag and drop an image or video here
               </p>
               <p className="text-sm text-muted-foreground mb-4">
-                or click to browse (Images: 50MB, Videos: 100MB max)
+                or click to browse (100MB max)
               </p>
+              {error && (
+                <p className="text-sm mb-4" style={{ color: "red" }}>{error}</p>
+              )}
               <Button asChild>
                 <label className="cursor-pointer">
                   <input
