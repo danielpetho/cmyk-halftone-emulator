@@ -1,9 +1,17 @@
 import * as esbuild from 'esbuild';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const isWatch = process.argv.includes('--watch');
 
+// Path to shared shaders (relative to this file)
+const sharedPath = path.resolve(__dirname, '../../shared');
+
+// Plugin to load .glsl files as raw strings
 const glslPlugin = {
   name: 'glsl',
   setup(build) {
@@ -26,6 +34,9 @@ async function buildUI() {
     format: 'iife',
     target: ['chrome58', 'firefox57', 'safari11'],
     plugins: [glslPlugin],
+    alias: {
+      '@shared': sharedPath
+    },
     logLevel: 'info'
   });
 
@@ -75,11 +86,11 @@ if (isWatch) {
   
   await build();
 
-  const watchDirs = ['src', '.'];
+  const watchDirs = ['src', '.', sharedPath];
   const watchExtensions = ['.ts', '.css', '.html', '.glsl'];
   
   for (const dir of watchDirs) {
-    fs.watch(dir, { recursive: dir === 'src' }, async (eventType, filename) => {
+    fs.watch(dir, { recursive: true }, async (eventType, filename) => {
       if (filename && watchExtensions.some(ext => filename.endsWith(ext))) {
         console.log(`\nFile changed: ${filename}`);
         await build();

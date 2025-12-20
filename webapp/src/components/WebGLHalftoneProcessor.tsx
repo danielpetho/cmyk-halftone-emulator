@@ -25,8 +25,8 @@ export interface WebGLHalftoneProcessorReturn {
 
 // Advanced halftone shader adapted from Stefan Gustavson's demo
 // Import shader source files
-import vertexShaderSource from "./shaders/halftone-vertex.glsl?raw";
-import fragmentShaderSource from "./shaders/halftone-fragment.glsl?raw";
+import vertexShaderSource from "@shared/shaders/halftone-vertex.glsl?raw";
+import fragmentShaderSource from "@shared/shaders/halftone-fragment.glsl?raw";
 
 // Default values for all controls
 const DEFAULTS = {

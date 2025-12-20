@@ -1,5 +1,5 @@
-import vertexShaderSource from './shaders/halftone-vertex.glsl';
-import fragmentShaderSource from './shaders/halftone-fragment.glsl';
+import vertexShaderSource from '@shared/shaders/halftone-vertex.glsl';
+import fragmentShaderSource from '@shared/shaders/halftone-fragment.glsl';
 import type { HalftoneSettings } from './constants';
 
 interface WebGLUniforms {
