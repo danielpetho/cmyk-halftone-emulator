@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CMYK Halftone Printer Emulator</title>
+  <style>
+:root {
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #3d3d3d;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --accent: #18a0fb;
+  --accent-hover: #0d8ce0;
+  --border: #404040;
+  --success: #1bc47d;
+  --error: #f24822;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-header h1 {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+}
+
+/* Sections */
+.section {
+  margin-bottom: 12px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-header:hover {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.section-content {
+  padding: 4px 0;
+}
+
+.section-content.collapsed {
+  display: none;
+}
+
+/* Controls */
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  gap: 8px;
+}
+
+.control-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 70px;
+}
+
+.control-value {
+  font-size: 10px;
+  color: var(--text-secondary);
+  min-width: 35px;
+  text-align: right;
+}
+
+input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--accent-hover);
+}
+
+/* Color picker */
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.color-input {
+  width: 70px;
+  padding: 4px 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 10px;
+  font-family: monospace;
+}
+
+/* Checkbox */
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  flex: 1;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: #4a4a4a;
+}
+
+.btn-icon {
+  padding: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+/* Main canvas area */
+.main-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a1a;
+  position: relative;
+}
+
+#preview-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* States */
+.empty-state {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 40px;
+}
+
+.empty-state h2 {
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.error-message {
+  color: var(--error);
+  padding: 12px;
+  text-align: center;
+}
+
+/* Loading */
+.loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-secondary);
+}
+
+.loading::after {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Ink color groups */
+.ink-group {
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.ink-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ink-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.ink-name {
+  font-weight: 500;
+  flex: 1;
+}
+
+/* Select dropdown */
+select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+
+</style>
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar with controls -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h1>🖨️ CMYK Halftone</h1>
+      </div>
+      
+      <div class="sidebar-content" id="controls">
+        <!-- Halftone Settings -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Halftone Settings</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Frequency</span>
+              <input type="range" id="frequency" min="20" max="200" value="85" step="1">
+              <span class="control-value" id="frequency-val">85</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Dot Size</span>
+              <input type="range" id="dotSize" min="0.1" max="2" value="1" step="0.01">
+              <span class="control-value" id="dotSize-val">1.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Roughness</span>
+              <input type="range" id="roughness" min="0" max="5" value="2" step="0.1">
+              <span class="control-value" id="roughness-val">2.0</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Fuzz</span>
+              <input type="range" id="fuzz" min="0" max="0.5" value="0.1" step="0.01">
+              <span class="control-value" id="fuzz-val">0.10</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Randomness</span>
+              <input type="range" id="randomness" min="0" max="1" value="0.2" step="0.01">
+              <span class="control-value" id="randomness-val">0.20</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Threshold</span>
+              <input type="range" id="threshold" min="0" max="0.5" value="0.05" step="0.01">
+              <span class="control-value" id="threshold-val">0.05</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Image Adjustments -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Image Adjustments</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Contrast</span>
+              <input type="range" id="contrast" min="0.5" max="2" value="1" step="0.01">
+              <span class="control-value" id="contrast-val">1.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Lightness</span>
+              <input type="range" id="lightness" min="-0.5" max="0.5" value="0" step="0.01">
+              <span class="control-value" id="lightness-val">0.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Blur</span>
+              <input type="range" id="blur" min="0" max="5" value="1" step="0.1">
+              <span class="control-value" id="blur-val">1.0</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Noise -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Noise & Texture</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Paper Noise</span>
+              <input type="range" id="paperNoise" min="0" max="1" value="0" step="0.01">
+              <span class="control-value" id="paperNoise-val">0.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Ink Noise</span>
+              <input type="range" id="inkNoise" min="0" max="1" value="0.6" step="0.01">
+              <span class="control-value" id="inkNoise-val">0.60</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Screen Angles -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Screen Angles</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Cyan</span>
+              <input type="range" id="cyanAngle" min="0" max="90" value="15" step="1">
+              <span class="control-value" id="cyanAngle-val">15°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Magenta</span>
+              <input type="range" id="magentaAngle" min="0" max="90" value="75" step="1">
+              <span class="control-value" id="magentaAngle-val">75°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Yellow</span>
+              <input type="range" id="yellowAngle" min="0" max="90" value="0" step="1">
+              <span class="control-value" id="yellowAngle-val">0°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Black</span>
+              <input type="range" id="blackAngle" min="0" max="90" value="45" step="1">
+              <span class="control-value" id="blackAngle-val">45°</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Ink Colors -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Ink Colors</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <!-- Cyan -->
+            <div class="ink-group">
+              <div class="ink-group-header">
+                <div class="ink-dot" style="background: #00FFFF"></div>
+                <span class="ink-name">Cyan</span>
+                <input type="checkbox" class="checkbox" id="showCyan" checked>
+              </div>
+              <div class="color-row">
+                <input type="color" id="cyanInk" value="#00FFFF" class="color-swatch">
+                <input type="text" class="color-input" id="cyanInk-text" value="#00FFFF">
+              </div>
+              <div class="control-row">
+                <span class="control-label">Alpha</span>
+                <input type="range" id="cyanAlpha" min="0" max="1" value="0.95" step="0.01">
+                <span class="control-value" id="cyanAlpha-val">0.95</span>
+              </div>
+            </div>
+            
+            <!-- Magenta -->
+            <div class="ink-group">
+              <div class="ink-group-header">
+                <div class="ink-dot" style="background: #FF00FF"></div>
+                <span class="ink-name">Magenta</span>
+                <input type="checkbox" class="checkbox" id="showMagenta" checked>
+              </div>
+              <div class="color-row">
+                <input type="color" id="magentaInk" value="#FF00FF" class="color-swatch">
+                <input type="text" class="color-input" id="magentaInk-text" value="#FF00FF">
+              </div>
+              <div class="control-row">
+                <span class="control-label">Alpha</span>
+                <input type="range" id="magentaAlpha" min="0" max="1" value="0.95" step="0.01">
+                <span class="control-value" id="magentaAlpha-val">0.95</span>
+              </div>
+            </div>
+            
+            <!-- Yellow -->
+            <div class="ink-group">
+              <div class="ink-group-header">
+                <div class="ink-dot" style="background: #FFFF00"></div>
+                <span class="ink-name">Yellow</span>
+                <input type="checkbox" class="checkbox" id="showYellow" checked>
+              </div>
+              <div class="color-row">
+                <input type="color" id="yellowInk" value="#FFFF00" class="color-swatch">
+                <input type="text" class="color-input" id="yellowInk-text" value="#FFFF00">
+              </div>
+              <div class="control-row">
+                <span class="control-label">Alpha</span>
+                <input type="range" id="yellowAlpha" min="0" max="1" value="0.95" step="0.01">
+                <span class="control-value" id="yellowAlpha-val">0.95</span>
+              </div>
+            </div>
+            
+            <!-- Black -->
+            <div class="ink-group">
+              <div class="ink-group-header">
+                <div class="ink-dot" style="background: #000000; border: 1px solid #666"></div>
+                <span class="ink-name">Black</span>
+                <input type="checkbox" class="checkbox" id="showBlack" checked>
+              </div>
+              <div class="color-row">
+                <input type="color" id="blackInk" value="#000000" class="color-swatch">
+                <input type="text" class="color-input" id="blackInk-text" value="#000000">
+              </div>
+              <div class="control-row">
+                <span class="control-label">Alpha</span>
+                <input type="range" id="blackAlpha" min="0" max="1" value="0.95" step="0.01">
+                <span class="control-value" id="blackAlpha-val">0.95</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Paper -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Paper</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <div class="color-row">
+              <span class="control-label">Color</span>
+              <input type="color" id="paperColor" value="#f8f4e8" class="color-swatch">
+              <input type="text" class="color-input" id="paperColor-text" value="#f8f4e8">
+            </div>
+          </div>
+        </div>
+        
+        <!-- Blend Mode -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Blend Mode</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <select id="blendMode">
+              <option value="0">Subtractive (Multiply)</option>
+              <option value="1">Additive</option>
+              <option value="2">Normal (Alpha)</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Reset -->
+        <div style="padding: 8px 0;">
+          <button class="btn btn-secondary" style="width: 100%;" onclick="resetDefaults()">
+            Reset to Defaults
+          </button>
+        </div>
+      </div>
+      
+      <div class="sidebar-footer">
+        <button class="btn btn-secondary" onclick="cancel()">Cancel</button>
+        <button class="btn btn-primary" id="apply-btn" onclick="applyHalftone()">Apply</button>
+      </div>
+    </div>
+    
+    <!-- Main preview area -->
+    <div class="main-area" id="main-area">
+      <div class="empty-state" id="empty-state">
+        <h2>Select an image</h2>
+        <p>Select an image or a shape with an image fill in Figma to apply the halftone effect.</p>
+      </div>
+      <canvas id="preview-canvas" style="display: none;"></canvas>
+      <div class="loading" id="loading" style="display: none;">Processing...</div>
+    </div>
+  </div>
+<script>
+"use strict";(()=>{var k="attribute vec2 a_position;\nattribute vec2 a_texCoord;\nvarying vec2 v_texCoord;\n\nvoid main() {\n  gl_Position = vec4(a_position, 0.0, 1.0);\n  v_texCoord = vec2(a_texCoord.x, 1.0 - a_texCoord.y);\n}\n\n";var w="#ifdef GL_OES_standard_derivatives\n#extension GL_OES_standard_derivatives : enable\n#endif\n\nprecision highp float;\n\nuniform sampler2D u_texture;\nuniform vec2 u_resolution;\n\nuniform float u_frequency;\nuniform float u_dotSize;\nuniform float u_roughness;\nuniform float u_fuzz;\nuniform float u_paperNoise;\nuniform float u_inkNoise;\nuniform float u_randomness;\nuniform float u_contrast;\nuniform float u_lightness;\nuniform float u_blur;\nuniform float u_threshold;\nuniform vec3 u_paperColor;\n\nuniform float u_cyanAngle;\nuniform float u_magentaAngle;\nuniform float u_yellowAngle;\nuniform float u_blackAngle;\n\nuniform vec4 u_cyanColor;\nuniform vec4 u_magentaColor;\nuniform vec4 u_yellowColor;\nuniform vec4 u_blackColor;\n\nuniform bool u_showCyan;\nuniform bool u_showMagenta;\nuniform bool u_showYellow;\nuniform bool u_showBlack;\n\nuniform int u_blendMode;\n\nvarying vec2 v_texCoord;\n\nvec3 mod289(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec2 mod289(vec2 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec3 permute(vec3 x) {\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nfloat simplexNoise(vec2 v) {\n  const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);\n  vec2 i  = floor(v + dot(v, C.yy));\n  vec2 x0 = v - i + dot(i, C.xx);\n  vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);\n  vec4 x12 = x0.xyxy + C.xxzz;\n  x12.xy -= i1;\n  i = mod289(i);\n  vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));\n  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);\n  m = m*m;\n  m = m*m;\n  vec3 x = 2.0 * fract(p * C.www) - 1.0;\n  vec3 h = abs(x) - 0.5;\n  vec3 ox = floor(x + 0.5);\n  vec3 a0 = x - ox;\n  m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);\n  vec3 g;\n  g.x = a0.x * x0.x + h.x * x0.y;\n  g.yz = a0.yz * x12.xz + h.yz * x12.yw;\n  return 130.0 * dot(m, g);\n}\n\nvec4 rgbToCmyk(vec3 rgb) {\n  vec4 cmyk;\n  cmyk.w = 1.0 - max(max(rgb.r, rgb.g), rgb.b);\n  if (cmyk.w < 1.0) {\n    float oneMinusK = 1.0 - cmyk.w;\n    cmyk.x = (1.0 - rgb.r - cmyk.w) / oneMinusK;\n    cmyk.y = (1.0 - rgb.g - cmyk.w) / oneMinusK;\n    cmyk.z = (1.0 - rgb.b - cmyk.w) / oneMinusK;\n  } else {\n    cmyk.xyz = vec3(0.0);\n  }\n  return clamp(cmyk, 0.0, 1.0);\n}\n\nmat2 rotationMatrix(float angle) {\n  float rad = radians(angle);\n  float s = sin(rad);\n  float c = cos(rad);\n  return mat2(c, -s, s, c);\n}\n\nfloat hash(vec2 p) {\n  p = 50.0 * fract(p * 0.3183099 + vec2(0.71, 0.113));\n  return fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat halftoneChannel(vec2 st, float channelValue, float angle, float roughness, float fuzz, float paperNoise) {\n  if (channelValue < u_threshold) {\n    return 0.0;\n  }\n  \n  vec2 aspectCorrectedSt = st;\n  aspectCorrectedSt.x *= u_resolution.x / u_resolution.y;\n  \n  vec2 rotatedSt = rotationMatrix(angle) * aspectCorrectedSt * u_frequency;\n  \n  #ifdef GL_OES_standard_derivatives\n  float pixelWidth = length(fwidth(rotatedSt)) * 2.0;\n  #else\n  float pixelWidth = 0.02;\n  #endif\n  \n  vec2 gridPos = floor(rotatedSt);\n  \n  if (u_randomness > 0.0) {\n    float randX = hash(gridPos) - 0.5;\n    float randY = hash(gridPos + vec2(17.0, 31.0)) - 0.5;\n    vec2 randomOffset = vec2(randX, randY) * u_randomness * 0.8;\n    rotatedSt += randomOffset;\n  }\n  \n  vec2 uv = 2.0 * fract(rotatedSt) - 1.0;\n  float intensity = clamp(channelValue, 0.0, 1.0);\n  float contrastCurve = intensity * intensity;\n  float baseRadius = (contrastCurve * u_dotSize);\n  \n  if (intensity > 0.1) {\n    baseRadius += roughness * paperNoise * intensity;\n  }\n  \n  float dist = length(uv);\n  float radius = baseRadius - dist;\n  float aaWidth = clamp(pixelWidth, 0.01, 0.1);\n  float edge = smoothstep(-fuzz - aaWidth, aaWidth, radius);\n  \n  return edge;\n}\n\nfloat gaussian(float x, float sigma) {\n  return exp(-(x * x) / (2.0 * sigma * sigma));\n}\n\nvec2 pixelateToRotatedGrid(vec2 uv, float freq, float angle) {\n  vec2 aspectCorrected = uv;\n  aspectCorrected.x *= u_resolution.x / u_resolution.y;\n  vec2 rotatedUV = rotationMatrix(angle) * aspectCorrected * freq;\n  vec2 cellCenter = floor(rotatedUV) + 0.5;\n  mat2 invRotation = rotationMatrix(-angle);\n  vec2 unrotated = invRotation * cellCenter / freq;\n  unrotated.x /= u_resolution.x / u_resolution.y;\n  return unrotated;\n}\n\nvec3 sampleWithBlur(vec2 samplePos) {\n  if (u_blur > 0.1) {\n    vec2 texelSize = 1.0 / u_resolution;\n    float sigma = u_blur / 3.0;\n    vec3 colorSum = vec3(0.0);\n    float weightSum = 0.0;\n    \n    for (int x = -4; x <= 4; x++) {\n      for (int y = -4; y <= 4; y++) {\n        vec2 offset = vec2(float(x), float(y)) * texelSize * (u_blur / 4.0);\n        float dist = length(vec2(float(x), float(y)));\n        float weight = gaussian(dist, sigma);\n        if (weight > 0.001) {\n          colorSum += texture2D(u_texture, samplePos + offset).rgb * weight;\n          weightSum += weight;\n        }\n      }\n    }\n    return colorSum / weightSum;\n  } else {\n    return texture2D(u_texture, samplePos).rgb;\n  }\n}\n\nvec3 adjustColor(vec3 color) {\n  color = (color - 0.5) * u_contrast + 0.5;\n  color = color + u_lightness;\n  return clamp(color, 0.0, 1.0);\n}\n\nvoid main() {\n  vec2 st = v_texCoord;\n  vec3 texcolor = adjustColor(sampleWithBlur(st));\n  \n  vec2 p = vec2(0.0);\n  float s = 100.0;\n  float w = 0.5;\n  float f = 0.0;\n  \n  for(int i = 0; i < 4; i++) {\n    f += w * simplexNoise(s * vec2(2.0, 1.0) * st);\n    w *= 0.55;\n    s *= 2.2;\n  }\n  float paperNoiseValue = 0.1 * f;\n  \n  vec3 paper = u_paperColor - u_paperNoise * paperNoiseValue;\n  float inkamount = 0.9 - u_inkNoise * paperNoiseValue;\n  \n  vec2 cyanSamplePos = pixelateToRotatedGrid(st, u_frequency, u_cyanAngle);\n  vec3 cyanColor = adjustColor(sampleWithBlur(cyanSamplePos));\n  vec4 cyanCmyk = rgbToCmyk(cyanColor);\n  \n  vec2 magentaSamplePos = pixelateToRotatedGrid(st, u_frequency, u_magentaAngle);\n  vec3 magentaColor = adjustColor(sampleWithBlur(magentaSamplePos));\n  vec4 magentaCmyk = rgbToCmyk(magentaColor);\n  \n  vec2 yellowSamplePos = pixelateToRotatedGrid(st, u_frequency, u_yellowAngle);\n  vec3 yellowColor = adjustColor(sampleWithBlur(yellowSamplePos));\n  vec4 yellowCmyk = rgbToCmyk(yellowColor);\n  \n  vec2 blackSamplePos = pixelateToRotatedGrid(st, u_frequency, u_blackAngle);\n  vec3 blackColor = adjustColor(sampleWithBlur(blackSamplePos));\n  vec4 blackCmyk = rgbToCmyk(blackColor);\n  \n  float c = 0.0, m = 0.0, y = 0.0, k = 0.0;\n  \n  if (u_showCyan && cyanCmyk.x > 0.001) {\n    c = halftoneChannel(st, cyanCmyk.x, u_cyanAngle, u_roughness, u_fuzz, paperNoiseValue);\n  }\n  \n  if (u_showMagenta && magentaCmyk.y > 0.001) {\n    m = halftoneChannel(st, magentaCmyk.y, u_magentaAngle, u_roughness, u_fuzz, paperNoiseValue);\n  }\n  \n  if (u_showYellow && yellowCmyk.z > 0.001) {\n    y = halftoneChannel(st, yellowCmyk.z, u_yellowAngle, u_roughness, u_fuzz, paperNoiseValue);\n  }\n  \n  if (u_showBlack && blackCmyk.w > 0.001) {\n    k = halftoneChannel(st, blackCmyk.w, u_blackAngle, u_roughness, u_fuzz, paperNoiseValue);\n  }\n  \n  vec3 rgbscreen = paper;\n  \n  if (u_showCyan && c > 0.0) {\n    vec3 cyanInk = u_cyanColor.rgb;\n    float cyanAlpha = u_cyanColor.a * c * inkamount;\n    if (u_blendMode == 0) {\n      rgbscreen = mix(rgbscreen, rgbscreen * cyanInk, cyanAlpha);\n    } else if (u_blendMode == 1) {\n      rgbscreen = clamp(rgbscreen + cyanInk * cyanAlpha, 0.0, 1.0);\n    } else {\n      rgbscreen = mix(rgbscreen, cyanInk, cyanAlpha);\n    }\n  }\n  \n  if (u_showMagenta && m > 0.0) {\n    vec3 magentaInk = u_magentaColor.rgb;\n    float magentaAlpha = u_magentaColor.a * m * inkamount;\n    if (u_blendMode == 0) {\n      rgbscreen = mix(rgbscreen, rgbscreen * magentaInk, magentaAlpha);\n    } else if (u_blendMode == 1) {\n      rgbscreen = clamp(rgbscreen + magentaInk * magentaAlpha, 0.0, 1.0);\n    } else {\n      rgbscreen = mix(rgbscreen, magentaInk, magentaAlpha);\n    }\n  }\n  \n  if (u_showYellow && y > 0.0) {\n    vec3 yellowInk = u_yellowColor.rgb;\n    float yellowAlpha = u_yellowColor.a * y * inkamount;\n    if (u_blendMode == 0) {\n      rgbscreen = mix(rgbscreen, rgbscreen * yellowInk, yellowAlpha);\n    } else if (u_blendMode == 1) {\n      rgbscreen = clamp(rgbscreen + yellowInk * yellowAlpha, 0.0, 1.0);\n    } else {\n      rgbscreen = mix(rgbscreen, yellowInk, yellowAlpha);\n    }\n  }\n  \n  if (u_showBlack && k > 0.0) {\n    vec3 blackInk = u_blackColor.rgb;\n    float blackAlpha = u_blackColor.a * k * inkamount;\n    if (u_blendMode == 0) {\n      rgbscreen = mix(rgbscreen, rgbscreen * blackInk, blackAlpha);\n    } else if (u_blendMode == 1) {\n      rgbscreen = clamp(rgbscreen + blackInk * blackAlpha, 0.0, 1.0);\n    } else {\n      rgbscreen = mix(rgbscreen, blackInk, blackAlpha);\n    }\n  }\n  \n  #ifdef GL_OES_standard_derivatives\n  float afwidth = 2.0 * u_frequency * max(length(dFdx(st)), length(dFdy(st)));\n  float blend = smoothstep(0.7, 1.4, afwidth);\n  #else\n  float blend = 0.0;\n  #endif\n  \n  vec3 finalColor = mix(rgbscreen, texcolor, blend);\n  gl_FragColor = vec4(finalColor, 1.0);\n}\n\n";var f=class{constructor(e){this.gl=null;this.program=null;this.texture=null;this.uniforms=null;this.imageWidth=0;this.imageHeight=0;this.isImageLoaded=!1;this.canvas=e}init(){if(this.gl=this.canvas.getContext("webgl",{preserveDrawingBuffer:!0}),!this.gl)return console.error("WebGL not supported"),!1;this.gl.getExtension("OES_standard_derivatives");let e=this.createShader(this.gl.VERTEX_SHADER,k),o=this.createShader(this.gl.FRAGMENT_SHADER,w);if(!e||!o)return console.error("Failed to create shaders"),!1;if(this.program=this.gl.createProgram(),!this.program)return!1;if(this.gl.attachShader(this.program,e),this.gl.attachShader(this.program,o),this.gl.linkProgram(this.program),!this.gl.getProgramParameter(this.program,this.gl.LINK_STATUS))return console.error("Program link error:",this.gl.getProgramInfoLog(this.program)),!1;this.uniforms={u_texture:this.gl.getUniformLocation(this.program,"u_texture"),u_resolution:this.gl.getUniformLocation(this.program,"u_resolution"),u_frequency:this.gl.getUniformLocation(this.program,"u_frequency"),u_dotSize:this.gl.getUniformLocation(this.program,"u_dotSize"),u_roughness:this.gl.getUniformLocation(this.program,"u_roughness"),u_fuzz:this.gl.getUniformLocation(this.program,"u_fuzz"),u_paperNoise:this.gl.getUniformLocation(this.program,"u_paperNoise"),u_inkNoise:this.gl.getUniformLocation(this.program,"u_inkNoise"),u_randomness:this.gl.getUniformLocation(this.program,"u_randomness"),u_contrast:this.gl.getUniformLocation(this.program,"u_contrast"),u_lightness:this.gl.getUniformLocation(this.program,"u_lightness"),u_blur:this.gl.getUniformLocation(this.program,"u_blur"),u_threshold:this.gl.getUniformLocation(this.program,"u_threshold"),u_paperColor:this.gl.getUniformLocation(this.program,"u_paperColor"),u_cyanAngle:this.gl.getUniformLocation(this.program,"u_cyanAngle"),u_magentaAngle:this.gl.getUniformLocation(this.program,"u_magentaAngle"),u_yellowAngle:this.gl.getUniformLocation(this.program,"u_yellowAngle"),u_blackAngle:this.gl.getUniformLocation(this.program,"u_blackAngle"),u_cyanColor:this.gl.getUniformLocation(this.program,"u_cyanColor"),u_magentaColor:this.gl.getUniformLocation(this.program,"u_magentaColor"),u_yellowColor:this.gl.getUniformLocation(this.program,"u_yellowColor"),u_blackColor:this.gl.getUniformLocation(this.program,"u_blackColor"),u_showCyan:this.gl.getUniformLocation(this.program,"u_showCyan"),u_showMagenta:this.gl.getUniformLocation(this.program,"u_showMagenta"),u_showYellow:this.gl.getUniformLocation(this.program,"u_showYellow"),u_showBlack:this.gl.getUniformLocation(this.program,"u_showBlack"),u_blendMode:this.gl.getUniformLocation(this.program,"u_blendMode")};let a=new Float32Array([-1,-1,0,0,1,-1,1,0,-1,1,0,1,1,1,1,1]),s=this.gl.createBuffer();this.gl.bindBuffer(this.gl.ARRAY_BUFFER,s),this.gl.bufferData(this.gl.ARRAY_BUFFER,a,this.gl.STATIC_DRAW);let r=this.gl.getAttribLocation(this.program,"a_position"),i=this.gl.getAttribLocation(this.program,"a_texCoord");return this.gl.enableVertexAttribArray(r),this.gl.enableVertexAttribArray(i),this.gl.vertexAttribPointer(r,2,this.gl.FLOAT,!1,16,0),this.gl.vertexAttribPointer(i,2,this.gl.FLOAT,!1,16,8),!0}createShader(e,o){if(!this.gl)return null;let a=this.gl.createShader(e);return a?(this.gl.shaderSource(a,o),this.gl.compileShader(a),this.gl.getShaderParameter(a,this.gl.COMPILE_STATUS)?a:(console.error("Shader compile error:",this.gl.getShaderInfoLog(a)),this.gl.deleteShader(a),null)):null}async loadImageFromBytes(e){return new Promise((o,a)=>{let s=new Blob([e]),r=URL.createObjectURL(s),i=new Image;i.onload=()=>{URL.revokeObjectURL(r),o(i)},i.onerror=()=>{URL.revokeObjectURL(r),a(new Error("Failed to load image"))},i.src=r})}setupTexture(e,o,a){if(!this.gl)return;this.texture&&this.gl.deleteTexture(this.texture),this.texture=this.gl.createTexture(),this.gl.bindTexture(this.gl.TEXTURE_2D,this.texture),this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_WRAP_S,this.gl.CLAMP_TO_EDGE),this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_WRAP_T,this.gl.CLAMP_TO_EDGE),this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_MIN_FILTER,this.gl.LINEAR),this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_MAG_FILTER,this.gl.LINEAR),this.gl.texImage2D(this.gl.TEXTURE_2D,0,this.gl.RGBA,this.gl.RGBA,this.gl.UNSIGNED_BYTE,e),this.imageWidth=e.width,this.imageHeight=e.height;let s=e.width,r=e.height;if(s>o||r>a){let i=Math.min(o/s,a/r);s=Math.floor(s*i),r=Math.floor(r*i)}this.canvas.width=e.width,this.canvas.height=e.height,this.canvas.style.width=s+"px",this.canvas.style.height=r+"px",this.gl.viewport(0,0,e.width,e.height),this.isImageLoaded=!0}hexToRgb(e){let o=parseInt(e.slice(1,3),16)/255,a=parseInt(e.slice(3,5),16)/255,s=parseInt(e.slice(5,7),16)/255;return[o,a,s]}render(e){if(!this.gl||!this.program||!this.texture||!this.uniforms||!this.isImageLoaded)return;this.gl.useProgram(this.program),this.gl.clearColor(0,0,0,1),this.gl.clear(this.gl.COLOR_BUFFER_BIT),this.gl.activeTexture(this.gl.TEXTURE0),this.gl.bindTexture(this.gl.TEXTURE_2D,this.texture),this.gl.uniform1i(this.uniforms.u_texture,0),this.gl.uniform2f(this.uniforms.u_resolution,this.imageWidth,this.imageHeight),this.gl.uniform1f(this.uniforms.u_frequency,e.frequency),this.gl.uniform1f(this.uniforms.u_dotSize,e.dotSize),this.gl.uniform1f(this.uniforms.u_roughness,e.roughness),this.gl.uniform1f(this.uniforms.u_fuzz,e.fuzz),this.gl.uniform1f(this.uniforms.u_paperNoise,e.paperNoise),this.gl.uniform1f(this.uniforms.u_inkNoise,e.inkNoise),this.gl.uniform1f(this.uniforms.u_randomness,e.randomness),this.gl.uniform1f(this.uniforms.u_contrast,e.contrast),this.gl.uniform1f(this.uniforms.u_lightness,e.lightness),this.gl.uniform1f(this.uniforms.u_blur,e.blur),this.gl.uniform1f(this.uniforms.u_threshold,e.threshold);let o=this.hexToRgb(e.paperColor);this.gl.uniform3f(this.uniforms.u_paperColor,o[0],o[1],o[2]),this.gl.uniform1f(this.uniforms.u_cyanAngle,e.cyanAngle),this.gl.uniform1f(this.uniforms.u_magentaAngle,e.magentaAngle),this.gl.uniform1f(this.uniforms.u_yellowAngle,e.yellowAngle),this.gl.uniform1f(this.uniforms.u_blackAngle,e.blackAngle);let a=this.hexToRgb(e.cyanInk);this.gl.uniform4f(this.uniforms.u_cyanColor,a[0],a[1],a[2],e.cyanAlpha);let s=this.hexToRgb(e.magentaInk);this.gl.uniform4f(this.uniforms.u_magentaColor,s[0],s[1],s[2],e.magentaAlpha);let r=this.hexToRgb(e.yellowInk);this.gl.uniform4f(this.uniforms.u_yellowColor,r[0],r[1],r[2],e.yellowAlpha);let i=this.hexToRgb(e.blackInk);this.gl.uniform4f(this.uniforms.u_blackColor,i[0],i[1],i[2],e.blackAlpha),this.gl.uniform1i(this.uniforms.u_showCyan,e.showCyan?1:0),this.gl.uniform1i(this.uniforms.u_showMagenta,e.showMagenta?1:0),this.gl.uniform1i(this.uniforms.u_showYellow,e.showYellow?1:0),this.gl.uniform1i(this.uniforms.u_showBlack,e.showBlack?1:0),this.gl.uniform1i(this.uniforms.u_blendMode,e.blendMode),this.gl.drawArrays(this.gl.TRIANGLE_STRIP,0,4)}getImageBlob(){return new Promise((e,o)=>{this.canvas.toBlob(a=>{a?e(a):o(new Error("Failed to create blob"))},"image/png")})}};var n={frequency:85,dotSize:1,roughness:2,fuzz:.1,paperNoise:0,inkNoise:.6,randomness:.2,contrast:1,lightness:0,blur:1,threshold:.05,blendMode:0,cyanAngle:15,magentaAngle:75,yellowAngle:0,blackAngle:45,cyanInk:"#00FFFF",cyanAlpha:.95,magentaInk:"#FF00FF",magentaAlpha:.95,yellowInk:"#FFFF00",yellowAlpha:.95,blackInk:"#000000",blackAlpha:.95,paperColor:"#f8f4e8",showCyan:!0,showMagenta:!0,showYellow:!0,showBlack:!0};function m(t){return document.getElementById(t)}function l(t,e="number"){let o=m(t);return o?e==="boolean"?o.checked:e==="number"?parseFloat(o.value):o.value:e==="boolean"?!1:e==="number"?0:""}function x(){return{frequency:l("frequency"),dotSize:l("dotSize"),roughness:l("roughness"),fuzz:l("fuzz"),paperNoise:l("paperNoise"),inkNoise:l("inkNoise"),randomness:l("randomness"),contrast:l("contrast"),lightness:l("lightness"),blur:l("blur"),threshold:l("threshold"),blendMode:l("blendMode"),cyanAngle:l("cyanAngle"),magentaAngle:l("magentaAngle"),yellowAngle:l("yellowAngle"),blackAngle:l("blackAngle"),cyanInk:l("cyanInk","string"),cyanAlpha:l("cyanAlpha"),magentaInk:l("magentaInk","string"),magentaAlpha:l("magentaAlpha"),yellowInk:l("yellowInk","string"),yellowAlpha:l("yellowAlpha"),blackInk:l("blackInk","string"),blackAlpha:l("blackAlpha"),paperColor:l("paperColor","string"),showCyan:l("showCyan","boolean"),showMagenta:l("showMagenta","boolean"),showYellow:l("showYellow","boolean"),showBlack:l("showBlack","boolean")}}function u(t,e,o=""){let a=m("".concat(t,"-val"));a&&(a.textContent=e+o)}function E(t){let e=t.nextElementSibling,o=t.querySelector("span:last-child");e.classList.toggle("collapsed"),o.textContent=e.classList.contains("collapsed")?"\u25B6":"\u25BC"}function v(t){[{id:"frequency"},{id:"dotSize",decimals:2},{id:"roughness",decimals:1},{id:"fuzz",decimals:2},{id:"paperNoise",decimals:2},{id:"inkNoise",decimals:2},{id:"randomness",decimals:2},{id:"contrast",decimals:2},{id:"lightness",decimals:2},{id:"blur",decimals:1},{id:"threshold",decimals:2},{id:"cyanAngle",suffix:"\xB0"},{id:"magentaAngle",suffix:"\xB0"},{id:"yellowAngle",suffix:"\xB0"},{id:"blackAngle",suffix:"\xB0"},{id:"cyanAlpha",decimals:2},{id:"magentaAlpha",decimals:2},{id:"yellowAlpha",decimals:2},{id:"blackAlpha",decimals:2}].forEach(({id:r,suffix:i="",decimals:g})=>{let h=m(r);h&&h.addEventListener("input",()=>{let I=g!==void 0?parseFloat(h.value).toFixed(g):h.value;u(r,I,i),t()})}),["cyanInk","magentaInk","yellowInk","blackInk","paperColor"].forEach(r=>{let i=m(r),g=m("".concat(r,"-text"));i&&g&&(i.addEventListener("input",()=>{g.value=i.value.toUpperCase(),t()}),g.addEventListener("change",()=>{/^#[0-9A-Fa-f]{6}$/.test(g.value)&&(i.value=g.value,t())}))}),["showCyan","showMagenta","showYellow","showBlack"].forEach(r=>{let i=m(r);i&&i.addEventListener("change",t)});let s=m("blendMode");s&&s.addEventListener("change",t),document.querySelectorAll(".section-header").forEach(r=>{r.addEventListener("click",()=>E(r))})}function A(t){let e=(o,a)=>{let s=m(o);s&&(typeof a=="boolean"?s.checked=a:s.value=String(a))};e("frequency",n.frequency),e("dotSize",n.dotSize),e("roughness",n.roughness),e("fuzz",n.fuzz),e("paperNoise",n.paperNoise),e("inkNoise",n.inkNoise),e("randomness",n.randomness),e("contrast",n.contrast),e("lightness",n.lightness),e("blur",n.blur),e("threshold",n.threshold),e("blendMode",n.blendMode),e("cyanAngle",n.cyanAngle),e("magentaAngle",n.magentaAngle),e("yellowAngle",n.yellowAngle),e("blackAngle",n.blackAngle),e("cyanInk",n.cyanInk),e("cyanInk-text",n.cyanInk),e("cyanAlpha",n.cyanAlpha),e("magentaInk",n.magentaInk),e("magentaInk-text",n.magentaInk),e("magentaAlpha",n.magentaAlpha),e("yellowInk",n.yellowInk),e("yellowInk-text",n.yellowInk),e("yellowAlpha",n.yellowAlpha),e("blackInk",n.blackInk),e("blackInk-text",n.blackInk),e("blackAlpha",n.blackAlpha),e("paperColor",n.paperColor),e("paperColor-text",n.paperColor),e("showCyan",n.showCyan),e("showMagenta",n.showMagenta),e("showYellow",n.showYellow),e("showBlack",n.showBlack),u("frequency",n.frequency),u("dotSize",n.dotSize.toFixed(2)),u("roughness",n.roughness.toFixed(1)),u("fuzz",n.fuzz.toFixed(2)),u("paperNoise",n.paperNoise.toFixed(2)),u("inkNoise",n.inkNoise.toFixed(2)),u("randomness",n.randomness.toFixed(2)),u("contrast",n.contrast.toFixed(2)),u("lightness",n.lightness.toFixed(2)),u("blur",n.blur.toFixed(1)),u("threshold",n.threshold.toFixed(2)),u("cyanAngle",n.cyanAngle,"\xB0"),u("magentaAngle",n.magentaAngle,"\xB0"),u("yellowAngle",n.yellowAngle,"\xB0"),u("blackAngle",n.blackAngle,"\xB0"),u("cyanAlpha",n.cyanAlpha.toFixed(2)),u("magentaAlpha",n.magentaAlpha.toFixed(2)),u("yellowAlpha",n.yellowAlpha.toFixed(2)),u("blackAlpha",n.blackAlpha.toFixed(2)),t()}var _=document.getElementById("preview-canvas"),L=document.getElementById("main-area"),b=document.getElementById("empty-state"),y=document.getElementById("loading"),c=new f(_);function p(){c.isImageLoaded&&c.render(x())}async function S(){if(c.isImageLoaded){p();try{let e=await(await c.getImageBlob()).arrayBuffer(),o=new Uint8Array(e);parent.postMessage({pluginMessage:{type:"apply-halftone",imageData:o,width:c.imageWidth,height:c.imageHeight}},"*")}catch(t){console.error("Failed to apply halftone:",t)}}}function T(){parent.postMessage({pluginMessage:{type:"cancel"}},"*")}function d(t,e){y.style.display="none",_.style.display="none",b.innerHTML="<h2>".concat(t,"</h2><p>").concat(e,"</p>"),b.style.display="block"}async function M(t){switch(t.type){case"image-data":if(!t.imageData)return;try{y.style.display="block",b.style.display="none";let e=await c.loadImageFromBytes(t.imageData),o=L.clientWidth-40,a=L.clientHeight-40;c.setupTexture(e,o,a),p(),_.style.display="block",y.style.display="none"}catch(e){d("Error loading image",e.message)}break;case"no-selection":d("Select an image",t.message||"Please select an image or shape with an image fill.");break;case"error":d("Error",t.message||"An error occurred.");break}}function C(){if(!c.init()){d("WebGL not supported","This plugin requires WebGL. Please try a different browser.");return}v(p),window.applyHalftone=S,window.cancel=T,window.resetDefaults=()=>A(p),window.toggleSection=t=>{let e=t.nextElementSibling,o=t.querySelector("span:last-child");e.classList.toggle("collapsed"),o.textContent=e.classList.contains("collapsed")?"\u25B6":"\u25BC"},window.onmessage=t=>{let e=t.data.pluginMessage;e&&M(e)},parent.postMessage({pluginMessage:{type:"get-selection"}},"*")}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",C):C();})();
+
+</script>
+</body>
+</html>
+

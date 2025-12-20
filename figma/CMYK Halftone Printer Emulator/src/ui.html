@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CMYK Halftone Printer Emulator</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar with controls -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h1>🖨️ CMYK Halftone</h1>
+      </div>
+      
+      <div class="sidebar-content" id="controls">
+        <!-- Halftone Settings -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Halftone Settings</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Frequency</span>
+              <input type="range" id="frequency" min="20" max="200" value="85" step="1">
+              <span class="control-value" id="frequency-val">85</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Dot Size</span>
+              <input type="range" id="dotSize" min="0.1" max="2" value="1" step="0.01">
+              <span class="control-value" id="dotSize-val">1.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Roughness</span>
+              <input type="range" id="roughness" min="0" max="5" value="2" step="0.1">
+              <span class="control-value" id="roughness-val">2.0</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Fuzz</span>
+              <input type="range" id="fuzz" min="0" max="0.5" value="0.1" step="0.01">
+              <span class="control-value" id="fuzz-val">0.10</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Randomness</span>
+              <input type="range" id="randomness" min="0" max="1" value="0.2" step="0.01">
+              <span class="control-value" id="randomness-val">0.20</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Threshold</span>
+              <input type="range" id="threshold" min="0" max="0.5" value="0.05" step="0.01">
+              <span class="control-value" id="threshold-val">0.05</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Image Adjustments -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Image Adjustments</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Contrast</span>
+              <input type="range" id="contrast" min="0.5" max="2" value="1" step="0.01">
+              <span class="control-value" id="contrast-val">1.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Lightness</span>
+              <input type="range" id="lightness" min="-0.5" max="0.5" value="0" step="0.01">
+              <span class="control-value" id="lightness-val">0.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Blur</span>
+              <input type="range" id="blur" min="0" max="5" value="1" step="0.1">
+              <span class="control-value" id="blur-val">1.0</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Noise -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Noise & Texture</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Paper Noise</span>
+              <input type="range" id="paperNoise" min="0" max="1" value="0" step="0.01">
+              <span class="control-value" id="paperNoise-val">0.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Ink Noise</span>
+              <input type="range" id="inkNoise" min="0" max="1" value="0.6" step="0.01">
+              <span class="control-value" id="inkNoise-val">0.60</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Screen Angles -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Screen Angles</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Cyan</span>
+              <input type="range" id="cyanAngle" min="0" max="90" value="15" step="1">
+              <span class="control-value" id="cyanAngle-val">15°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Magenta</span>
+              <input type="range" id="magentaAngle" min="0" max="90" value="75" step="1">
+              <span class="control-value" id="magentaAngle-val">75°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Yellow</span>
+              <input type="range" id="yellowAngle" min="0" max="90" value="0" step="1">
+              <span class="control-value" id="yellowAngle-val">0°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Black</span>
+              <input type="range" id="blackAngle" min="0" max="90" value="45" step="1">
+              <span class="control-value" id="blackAngle-val">45°</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Ink Colors -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Ink Colors</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <!-- Cyan -->
+            <div class="ink-group">
+              <div class="ink-group-header">
+                <div class="ink-dot" style="background: #00FFFF"></div>
+                <span class="ink-name">Cyan</span>
+                <input type="checkbox" class="checkbox" id="showCyan" checked>
+              </div>
+              <div class="color-row">
+                <input type="color" id="cyanInk" value="#00FFFF" class="color-swatch">
+                <input type="text" class="color-input" id="cyanInk-text" value="#00FFFF">
+              </div>
+              <div class="control-row">
+                <span class="control-label">Alpha</span>
+                <input type="range" id="cyanAlpha" min="0" max="1" value="0.95" step="0.01">
+                <span class="control-value" id="cyanAlpha-val">0.95</span>
+              </div>
+            </div>
+            
+            <!-- Magenta -->
+            <div class="ink-group">
+              <div class="ink-group-header">
+                <div class="ink-dot" style="background: #FF00FF"></div>
+                <span class="ink-name">Magenta</span>
+                <input type="checkbox" class="checkbox" id="showMagenta" checked>
+              </div>
+              <div class="color-row">
+                <input type="color" id="magentaInk" value="#FF00FF" class="color-swatch">
+                <input type="text" class="color-input" id="magentaInk-text" value="#FF00FF">
+              </div>
+              <div class="control-row">
+                <span class="control-label">Alpha</span>
+                <input type="range" id="magentaAlpha" min="0" max="1" value="0.95" step="0.01">
+                <span class="control-value" id="magentaAlpha-val">0.95</span>
+              </div>
+            </div>
+            
+            <!-- Yellow -->
+            <div class="ink-group">
+              <div class="ink-group-header">
+                <div class="ink-dot" style="background: #FFFF00"></div>
+                <span class="ink-name">Yellow</span>
+                <input type="checkbox" class="checkbox" id="showYellow" checked>
+              </div>
+              <div class="color-row">
+                <input type="color" id="yellowInk" value="#FFFF00" class="color-swatch">
+                <input type="text" class="color-input" id="yellowInk-text" value="#FFFF00">
+              </div>
+              <div class="control-row">
+                <span class="control-label">Alpha</span>
+                <input type="range" id="yellowAlpha" min="0" max="1" value="0.95" step="0.01">
+                <span class="control-value" id="yellowAlpha-val">0.95</span>
+              </div>
+            </div>
+            
+            <!-- Black -->
+            <div class="ink-group">
+              <div class="ink-group-header">
+                <div class="ink-dot" style="background: #000000; border: 1px solid #666"></div>
+                <span class="ink-name">Black</span>
+                <input type="checkbox" class="checkbox" id="showBlack" checked>
+              </div>
+              <div class="color-row">
+                <input type="color" id="blackInk" value="#000000" class="color-swatch">
+                <input type="text" class="color-input" id="blackInk-text" value="#000000">
+              </div>
+              <div class="control-row">
+                <span class="control-label">Alpha</span>
+                <input type="range" id="blackAlpha" min="0" max="1" value="0.95" step="0.01">
+                <span class="control-value" id="blackAlpha-val">0.95</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Paper -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Paper</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <div class="color-row">
+              <span class="control-label">Color</span>
+              <input type="color" id="paperColor" value="#f8f4e8" class="color-swatch">
+              <input type="text" class="color-input" id="paperColor-text" value="#f8f4e8">
+            </div>
+          </div>
+        </div>
+        
+        <!-- Blend Mode -->
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Blend Mode</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content">
+            <select id="blendMode">
+              <option value="0">Subtractive (Multiply)</option>
+              <option value="1">Additive</option>
+              <option value="2">Normal (Alpha)</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Reset -->
+        <div style="padding: 8px 0;">
+          <button class="btn btn-secondary" style="width: 100%;" onclick="resetDefaults()">
+            Reset to Defaults
+          </button>
+        </div>
+      </div>
+      
+      <div class="sidebar-footer">
+        <button class="btn btn-secondary" onclick="cancel()">Cancel</button>
+        <button class="btn btn-primary" id="apply-btn" onclick="applyHalftone()">Apply</button>
+      </div>
+    </div>
+    
+    <!-- Main preview area -->
+    <div class="main-area" id="main-area">
+      <div class="empty-state" id="empty-state">
+        <h2>Select an image</h2>
+        <p>Select an image or a shape with an image fill in Figma to apply the halftone effect.</p>
+      </div>
+      <canvas id="preview-canvas" style="display: none;"></canvas>
+      <div class="loading" id="loading" style="display: none;">Processing...</div>
+    </div>
+  </div>
+</body>
+</html>
+
