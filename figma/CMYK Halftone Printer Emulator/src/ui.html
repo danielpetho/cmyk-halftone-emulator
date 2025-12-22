@@ -9,45 +9,54 @@
   <div class="container">
     <!-- Sidebar with controls -->
     <div class="sidebar">
-      <div class="sidebar-header">
-        <h1>🖨️ CMYK Halftone</h1>
-      </div>
-      
       <div class="sidebar-content" id="controls">
+        <!-- Blend Mode -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Blend Mode <span class="tooltip" data-tip="Subtractive: Traditional CMYK printing (dark inks on light paper). Additive: For light/neon inks on dark backgrounds. Normal: Most flexible, works with any color combination.">ⓘ</span></span>
+          </div>
+          <div class="section-content">
+            <select id="blendMode">
+              <option value="0">Subtractive (CMYK)</option>
+              <option value="1">Additive</option>
+              <option value="2">Normal (Alpha)</option>
+            </select>
+          </div>
+        </div>
+        
         <!-- Halftone Settings -->
         <div class="section">
-          <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-header">
             <span class="section-title">Halftone Settings</span>
-            <span>▼</span>
           </div>
           <div class="section-content">
             <div class="control-row">
-              <span class="control-label">Frequency</span>
-              <input type="range" id="frequency" min="20" max="200" value="85" step="1">
+              <span class="control-label">Frequency <span class="tooltip" data-tip="Controls the density of halftone dots. Higher values = more dots.">ⓘ</span></span>
+              <input type="range" id="frequency" min="5" max="400" value="85" step="1">
               <span class="control-value" id="frequency-val">85</span>
             </div>
             <div class="control-row">
-              <span class="control-label">Dot Size</span>
+              <span class="control-label">Dot Size <span class="tooltip" data-tip="Maximum size of halftone dots. Larger values = bigger dots.">ⓘ</span></span>
               <input type="range" id="dotSize" min="0.1" max="2" value="1" step="0.01">
               <span class="control-value" id="dotSize-val">1.00</span>
             </div>
             <div class="control-row">
-              <span class="control-label">Roughness</span>
+              <span class="control-label">Roughness <span class="tooltip" data-tip="Adds irregular edges to dots for a more organic, vintage printing look.">ⓘ</span></span>
               <input type="range" id="roughness" min="0" max="5" value="2" step="0.1">
               <span class="control-value" id="roughness-val">2.0</span>
             </div>
             <div class="control-row">
-              <span class="control-label">Fuzz</span>
+              <span class="control-label">Fuzz <span class="tooltip" data-tip="Controls the softness of dot edges. Higher values create smoother transitions.">ⓘ</span></span>
               <input type="range" id="fuzz" min="0" max="0.5" value="0.1" step="0.01">
               <span class="control-value" id="fuzz-val">0.10</span>
             </div>
             <div class="control-row">
-              <span class="control-label">Randomness</span>
+              <span class="control-label">Randomness <span class="tooltip" data-tip="Randomly shifts dot positions to break up regular grid patterns.">ⓘ</span></span>
               <input type="range" id="randomness" min="0" max="1" value="0.2" step="0.01">
               <span class="control-value" id="randomness-val">0.20</span>
             </div>
             <div class="control-row">
-              <span class="control-label">Threshold</span>
+              <span class="control-label">Threshold <span class="tooltip" data-tip="Eliminates small dots below this value to remove artifacts. 0.05-0.15 recommended.">ⓘ</span></span>
               <input type="range" id="threshold" min="0" max="0.5" value="0.05" step="0.01">
               <span class="control-value" id="threshold-val">0.05</span>
             </div>
@@ -56,23 +65,22 @@
         
         <!-- Image Adjustments -->
         <div class="section">
-          <div class="section-header" onclick="toggleSection(this)">
-            <span class="section-title">Image Adjustments</span>
-            <span>▼</span>
+          <div class="section-header">
+            <span class="section-title">Image (Pre-filtering)</span>
           </div>
           <div class="section-content">
             <div class="control-row">
-              <span class="control-label">Contrast</span>
+              <span class="control-label">Contrast <span class="tooltip" data-tip="Adjusts the tonal range of the image before halftone processing.">ⓘ</span></span>
               <input type="range" id="contrast" min="0.5" max="2" value="1" step="0.01">
               <span class="control-value" id="contrast-val">1.00</span>
             </div>
             <div class="control-row">
-              <span class="control-label">Lightness</span>
+              <span class="control-label">Lightness <span class="tooltip" data-tip="Adjusts the overall brightness before halftone processing.">ⓘ</span></span>
               <input type="range" id="lightness" min="-0.5" max="0.5" value="0" step="0.01">
               <span class="control-value" id="lightness-val">0.00</span>
             </div>
             <div class="control-row">
-              <span class="control-label">Blur</span>
+              <span class="control-label">Blur <span class="tooltip" data-tip="Softens edges before halftone to reduce harsh cutoffs.">ⓘ</span></span>
               <input type="range" id="blur" min="0" max="5" value="1" step="0.1">
               <span class="control-value" id="blur-val">1.0</span>
             </div>
@@ -81,18 +89,17 @@
         
         <!-- Noise -->
         <div class="section">
-          <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-header">
             <span class="section-title">Noise & Texture</span>
-            <span>▼</span>
           </div>
           <div class="section-content">
             <div class="control-row">
-              <span class="control-label">Paper Noise</span>
+              <span class="control-label">Paper Noise <span class="tooltip" data-tip="Adds texture variation to the paper surface for a more realistic look.">ⓘ</span></span>
               <input type="range" id="paperNoise" min="0" max="1" value="0" step="0.01">
               <span class="control-value" id="paperNoise-val">0.00</span>
             </div>
             <div class="control-row">
-              <span class="control-label">Ink Noise</span>
+              <span class="control-label">Ink Noise <span class="tooltip" data-tip="Simulates ink density variation for authentic printing imperfections.">ⓘ</span></span>
               <input type="range" id="inkNoise" min="0" max="1" value="0.6" step="0.01">
               <span class="control-value" id="inkNoise-val">0.60</span>
             </div>
@@ -101,9 +108,8 @@
         
         <!-- Screen Angles -->
         <div class="section">
-          <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-header">
             <span class="section-title">Screen Angles</span>
-            <span>▼</span>
           </div>
           <div class="section-content">
             <div class="control-row">
@@ -131,9 +137,8 @@
         
         <!-- Ink Colors -->
         <div class="section">
-          <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-header">
             <span class="section-title">Ink Colors</span>
-            <span>▼</span>
           </div>
           <div class="section-content">
             <!-- Cyan -->
@@ -212,31 +217,14 @@
         
         <!-- Paper -->
         <div class="section">
-          <div class="section-header" onclick="toggleSection(this)">
-            <span class="section-title">Paper</span>
-            <span>▼</span>
+          <div class="section-header">
+            <span class="section-title">Paper / Background</span>
           </div>
           <div class="section-content">
             <div class="color-row">
-              <span class="control-label">Color</span>
               <input type="color" id="paperColor" value="#f8f4e8" class="color-swatch">
               <input type="text" class="color-input" id="paperColor-text" value="#f8f4e8">
             </div>
-          </div>
-        </div>
-        
-        <!-- Blend Mode -->
-        <div class="section">
-          <div class="section-header" onclick="toggleSection(this)">
-            <span class="section-title">Blend Mode</span>
-            <span>▼</span>
-          </div>
-          <div class="section-content">
-            <select id="blendMode">
-              <option value="0">Subtractive (Multiply)</option>
-              <option value="1">Additive</option>
-              <option value="2">Normal (Alpha)</option>
-            </select>
           </div>
         </div>
         
@@ -260,7 +248,23 @@
         <h2>Select an image</h2>
         <p>Select an image or a shape with an image fill in Figma to apply the halftone effect.</p>
       </div>
-      <canvas id="preview-canvas" style="display: none;"></canvas>
+      
+      <!-- Canvas container for zoom/pan -->
+      <div class="canvas-container" id="canvas-container" style="display: none;">
+        <div class="canvas-wrapper" id="canvas-wrapper">
+          <canvas id="preview-canvas"></canvas>
+        </div>
+      </div>
+      
+      <!-- Zoom controls -->
+      <div class="zoom-controls" id="zoom-controls" style="display: none;">
+        <button class="zoom-btn" id="zoom-out" title="Zoom out">−</button>
+        <span class="zoom-value" id="zoom-value">100%</span>
+        <button class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
+        <div class="zoom-divider"></div>
+        <button class="zoom-btn" id="zoom-fit" title="Fit to view">⊡</button>
+      </div>
+      
       <div class="loading" id="loading" style="display: none;">Processing...</div>
     </div>
   </div>

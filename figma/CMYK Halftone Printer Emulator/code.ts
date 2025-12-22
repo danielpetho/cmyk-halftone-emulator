@@ -1,9 +1,13 @@
 
 figma.showUI(__html__, { 
-  width: 800, 
-  height: 600,
-  themeColors: true
+  width: 1200, 
+  height: 800,
+  themeColors: true,
+  visible: true
 });
+
+// Enable plugin window resizing
+figma.ui.resize(1200, 800);
 
 interface PluginMessage {
   type: string;
@@ -111,7 +115,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       try {
         const newImage = figma.createImage(msg.imageData);
         
-        const node = selectedNodeId ? figma.getNodeById(selectedNodeId) : null;
+        const node = selectedNodeId ? await figma.getNodeByIdAsync(selectedNodeId) : null;
         
         if (node && 'fills' in node) {
           const fills = (node.fills as Paint[]).slice();
@@ -133,7 +137,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             scaleMode: 'FILL'
           }];
           
-          const originalNode = selectedNodeId ? figma.getNodeById(selectedNodeId) : null;
+          const originalNode = selectedNodeId ? await figma.getNodeByIdAsync(selectedNodeId) : null;
           if (originalNode && 'x' in originalNode && 'y' in originalNode) {
             rect.x = (originalNode.x as number) + (originalNode as RectangleNode).width + 20;
             rect.y = originalNode.y as number;

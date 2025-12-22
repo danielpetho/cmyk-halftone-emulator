@@ -173,7 +173,7 @@ export class HalftoneRenderer {
     });
   }
 
-  setupTexture(img: HTMLImageElement, maxWidth: number, maxHeight: number): void {
+  setupTexture(img: HTMLImageElement): void {
     if (!this.gl) return;
 
     if (this.texture) {
@@ -188,23 +188,19 @@ export class HalftoneRenderer {
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
     this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
 
+    console.log('Image dimensions:', img.width, 'x', img.height);
+    console.log('Natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+
     this.imageWidth = img.width;
     this.imageHeight = img.height;
 
-    // Calculate display size
-    let displayWidth = img.width;
-    let displayHeight = img.height;
-    
-    if (displayWidth > maxWidth || displayHeight > maxHeight) {
-      const scale = Math.min(maxWidth / displayWidth, maxHeight / displayHeight);
-      displayWidth = Math.floor(displayWidth * scale);
-      displayHeight = Math.floor(displayHeight * scale);
-    }
-
+    // Set canvas to actual image size - zoom controls handle display scaling
     this.canvas.width = img.width;
     this.canvas.height = img.height;
-    this.canvas.style.width = displayWidth + 'px';
-    this.canvas.style.height = displayHeight + 'px';
+    this.canvas.style.width = img.width + 'px';
+    this.canvas.style.height = img.height + 'px';
+    
+    console.log('Canvas set to:', this.canvas.width, 'x', this.canvas.height);
     
     this.gl.viewport(0, 0, img.width, img.height);
     this.isImageLoaded = true;
@@ -221,7 +217,7 @@ export class HalftoneRenderer {
     if (!this.gl || !this.program || !this.texture || !this.uniforms || !this.isImageLoaded) return;
 
     this.gl.useProgram(this.program);
-    this.gl.clearColor(0, 0, 0, 1);
+    this.gl.clearColor(0, 0, 0, 0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
     this.gl.activeTexture(this.gl.TEXTURE0);
