@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CMYK Halftone Printer Emulator</title>
+  <style>
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #fafafa;
+  --bg-tertiary: #f4f4f5;
+  --text-primary: #18181b;
+  --text-secondary: #71717a;
+  --text-muted: #a1a1aa;
+  --accent: #18181b;
+  --accent-hover: #27272a;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --success: #22c55e;
+  --error: #ef4444;
+  --cyan: #06b6d4;
+  --magenta: #ec4899;
+  --yellow: #eab308;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 300px;
+  min-width: 300px;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+}
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  background: var(--bg-primary);
+}
+
+/* Sections */
+.section {
+  border-bottom: 1px solid var(--border);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 12px 8px;
+  user-select: none;
+  background: var(--bg-primary);
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.section-content {
+  padding: 0 12px 12px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  min-height: 32px;
+}
+
+.control-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  width: 95px;
+  min-width: 95px;
+  flex-shrink: 0;
+}
+
+.control-value {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 36px;
+  max-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* Tooltips */
+.tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: help;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.tooltip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  padding: 8px 10px;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: normal;
+  width: max-content;
+  max-width: 160px;
+  border-radius: 6px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 4px;
+  border: 6px solid transparent;
+  border-top-color: var(--text-primary);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 9999;
+}
+
+/* First tooltip (Blend Mode at top) should appear below */
+.section:first-child .tooltip::after {
+  bottom: auto;
+  top: calc(100% + 8px);
+}
+
+.section:first-child .tooltip::before {
+  bottom: auto;
+  top: calc(100% + 2px);
+  border-top-color: transparent;
+  border-bottom-color: var(--text-primary);
+}
+
+.tooltip:hover::after,
+.tooltip:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  max-width: 120px;
+  height: 16px;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 16px;
+  background: #f3f3f3;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.1);
+  margin-top: -1px;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  border-color: #18a0fb;
+  box-shadow: 0 1px 4px rgba(24, 160, 251, 0.3);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 16px;
+  background: #f3f3f3;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+}
+
+input[type="range"]::-moz-range-progress {
+  height: 12px;
+  background: #18a0fb;
+  border-radius: 6px 0 0 6px;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.1);
+  margin-top: -1px;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  border-color: #18a0fb;
+}
+
+/* Color picker */
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 4px 0;
+}
+
+.color-picker-container {
+  display: flex;
+  align-items: center;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 24px;
+  padding: 2px 4px;
+  gap: 4px;
+  flex: 1;
+}
+
+.color-swatch {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+.color-input {
+  flex: 1;
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-family: inherit;
+  text-transform: uppercase;
+  height: 24px;
+  min-width: 0;
+}
+
+.color-input:focus {
+  outline: none;
+}
+
+/* Checkbox  */
+.checkbox {
+  width: 14px;
+  height: 14px;
+  /* accent-color: #18a0fb; */
+  cursor: pointer;
+}
+
+/* Ink groups - two row layout */
+.ink-group {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.ink-group:last-child {
+  border-bottom: none;
+}
+
+.ink-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ink-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ink-name {
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.ink-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.color-picker-left {
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 4px 0 0 4px;
+  padding: 2px 12px 2px 6px;
+  gap: 6px;
+  height: 24px;
+}
+
+.color-swatch-small {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.color-swatch-small::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-swatch-small::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.color-input-small {
+  width: 52px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-family: inherit;
+  text-transform: uppercase;
+}
+
+.color-input-small:focus {
+  outline: none;
+}
+
+.alpha-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f5f5f5;
+  border-radius: 0 4px 4px 0;
+  padding: 2px 6px;
+  height: 24px;
+  min-width: 54px;
+  cursor: ew-resize;
+}
+
+.alpha-input {
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 11px;
+  text-align: left;
+  -moz-appearance: textfield;
+  cursor: ew-resize;
+}
+
+.alpha-input::-webkit-outer-spin-button,
+.alpha-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.alpha-input:focus {
+  outline: none;
+  cursor: text;
+}
+
+.alpha-suffix {
+  font-size: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.ink-controls .checkbox {
+  margin-left: auto;
+}
+
+/* Paper color - full width picker */
+.paper-controls {
+  display: flex;
+  align-items: center;
+}
+
+.color-picker-full {
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 4px;
+  padding: 2px 12px 2px 6px;
+  gap: 6px;
+  height: 24px;
+}
+
+/* Select dropdown - Figma style */
+select {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M3 4.5l3 3 3-3' stroke='%23666' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  height: 32px;
+}
+
+select:hover {
+  border-color: var(--text-muted);
+}
+
+select:focus {
+  outline: none;
+  border-color: #18a0fb;
+}
+
+/* Buttons - Figma style */
+.btn {
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  height: 32px;
+}
+
+.btn-primary {
+  background: #18a0fb;
+  color: white;
+  border-color: #18a0fb;
+  flex: 1;
+}
+
+.btn-primary:hover {
+  background: #0d8ce0;
+}
+
+.btn-primary:active {
+  background: #0b7ac7;
+}
+
+.btn-secondary {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Main area */
+.main-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  position: relative;
+}
+
+/* States */
+.empty-state {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 40px;
+  max-width: 300px;
+}
+
+.empty-state h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.loading::after {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Canvas container for zoom/pan */
+.canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.canvas-container:active {
+  cursor: grabbing;
+}
+
+.canvas-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  transition: transform 0.1s ease-out;
+}
+
+#preview-canvas {
+  display: block;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  background: transparent;
+}
+
+/* Zoom controls */
+.zoom-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+}
+
+.zoom-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.zoom-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.zoom-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.zoom-value {
+  min-width: 50px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.zoom-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+/* Scrollbar styling */
+.sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+</style>
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar with controls -->
+    <div class="sidebar">
+      <div class="sidebar-content" id="controls">
+        <!-- Blend Mode -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Blend Mode <span class="tooltip" data-tip="Subtractive: Traditional CMYK printing (dark inks on light paper). Additive: For light/neon inks on dark backgrounds. Normal: Most flexible, works with any color combination.">ⓘ</span></span>
+          </div>
+          <div class="section-content">
+            <select id="blendMode">
+              <option value="0">Subtractive (CMYK)</option>
+              <option value="1">Additive</option>
+              <option value="2">Normal (Alpha)</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Halftone Settings -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Halftone Settings</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Frequency <span class="tooltip" data-tip="Controls the density of halftone dots. Higher values = more dots.">ⓘ</span></span>
+              <input type="range" id="frequency" min="5" max="400" value="85" step="1">
+              <span class="control-value" id="frequency-val">85</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Dot Size <span class="tooltip" data-tip="Maximum size of halftone dots. Larger values = bigger dots.">ⓘ</span></span>
+              <input type="range" id="dotSize" min="0.1" max="2" value="1" step="0.01">
+              <span class="control-value" id="dotSize-val">1.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Roughness <span class="tooltip" data-tip="Adds irregular edges to dots for a more organic, vintage printing look.">ⓘ</span></span>
+              <input type="range" id="roughness" min="0" max="5" value="2" step="0.1">
+              <span class="control-value" id="roughness-val">2.0</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Fuzz <span class="tooltip" data-tip="Controls the softness of dot edges. Higher values create smoother transitions.">ⓘ</span></span>
+              <input type="range" id="fuzz" min="0" max="0.5" value="0.1" step="0.01">
+              <span class="control-value" id="fuzz-val">0.10</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Randomness <span class="tooltip" data-tip="Randomly shifts dot positions to break up regular grid patterns.">ⓘ</span></span>
+              <input type="range" id="randomness" min="0" max="1" value="0.2" step="0.01">
+              <span class="control-value" id="randomness-val">0.20</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Threshold <span class="tooltip" data-tip="Eliminates small dots below this value to remove artifacts. 0.05-0.15 recommended.">ⓘ</span></span>
+              <input type="range" id="threshold" min="0" max="0.5" value="0.05" step="0.01">
+              <span class="control-value" id="threshold-val">0.05</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Image Adjustments -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Image (Pre-filtering)</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Contrast <span class="tooltip" data-tip="Adjusts the tonal range of the image before halftone processing.">ⓘ</span></span>
+              <input type="range" id="contrast" min="0.5" max="2" value="1" step="0.01">
+              <span class="control-value" id="contrast-val">1.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Lightness <span class="tooltip" data-tip="Adjusts the overall brightness before halftone processing.">ⓘ</span></span>
+              <input type="range" id="lightness" min="-0.5" max="0.5" value="0" step="0.01">
+              <span class="control-value" id="lightness-val">0.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Blur <span class="tooltip" data-tip="Softens edges before halftone to reduce harsh cutoffs.">ⓘ</span></span>
+              <input type="range" id="blur" min="0" max="5" value="1" step="0.1">
+              <span class="control-value" id="blur-val">1.0</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Noise -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Noise & Texture</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Paper Noise <span class="tooltip" data-tip="Adds texture variation to the paper surface for a more realistic look.">ⓘ</span></span>
+              <input type="range" id="paperNoise" min="0" max="1" value="0" step="0.01">
+              <span class="control-value" id="paperNoise-val">0.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Ink Noise <span class="tooltip" data-tip="Simulates ink density variation for authentic printing imperfections.">ⓘ</span></span>
+              <input type="range" id="inkNoise" min="0" max="1" value="0.6" step="0.01">
+              <span class="control-value" id="inkNoise-val">0.60</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Screen Angles -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Screen Angles</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Cyan</span>
+              <input type="range" id="cyanAngle" min="0" max="90" value="15" step="1">
+              <span class="control-value" id="cyanAngle-val">15°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Magenta</span>
+              <input type="range" id="magentaAngle" min="0" max="90" value="75" step="1">
+              <span class="control-value" id="magentaAngle-val">75°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Yellow</span>
+              <input type="range" id="yellowAngle" min="0" max="90" value="0" step="1">
+              <span class="control-value" id="yellowAngle-val">0°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Black</span>
+              <input type="range" id="blackAngle" min="0" max="90" value="45" step="1">
+              <span class="control-value" id="blackAngle-val">45°</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Ink Colors -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Ink Colors</span>
+          </div>
+          <div class="section-content">
+            <!-- Cyan -->
+            <div class="ink-group">
+              <div class="ink-header">
+                <div class="ink-dot" style="background: #00FFFF"></div>
+                <span class="ink-name">Cyan</span>
+              </div>
+              <div class="ink-controls">
+                <div class="color-picker-left">
+                  <input type="color" id="cyanInk" value="#00FFFF" class="color-swatch-small">
+                  <input type="text" class="color-input-small" id="cyanInk-text" value="00FFFF">
+                </div>
+                <div class="alpha-container">
+                  <input type="number" class="alpha-input" id="cyanAlpha" min="0" max="100" value="95" step="1">
+                  <span class="alpha-suffix">%</span>
+                </div>
+                <input type="checkbox" class="checkbox" id="showCyan" checked>
+              </div>
+            </div>
+            
+            <!-- Magenta -->
+            <div class="ink-group">
+              <div class="ink-header">
+                <div class="ink-dot" style="background: #FF00FF"></div>
+                <span class="ink-name">Magenta</span>
+              </div>
+              <div class="ink-controls">
+                <div class="color-picker-left">
+                  <input type="color" id="magentaInk" value="#FF00FF" class="color-swatch-small">
+                  <input type="text" class="color-input-small" id="magentaInk-text" value="FF00FF">
+                </div>
+                <div class="alpha-container">
+                  <input type="number" class="alpha-input" id="magentaAlpha" min="0" max="100" value="95" step="1">
+                  <span class="alpha-suffix">%</span>
+                </div>
+                <input type="checkbox" class="checkbox" id="showMagenta" checked>
+              </div>
+            </div>
+            
+            <!-- Yellow -->
+            <div class="ink-group">
+              <div class="ink-header">
+                <div class="ink-dot" style="background: #FFFF00"></div>
+                <span class="ink-name">Yellow</span>
+              </div>
+              <div class="ink-controls">
+                <div class="color-picker-left">
+                  <input type="color" id="yellowInk" value="#FFFF00" class="color-swatch-small">
+                  <input type="text" class="color-input-small" id="yellowInk-text" value="FFFF00">
+                </div>
+                <div class="alpha-container">
+                  <input type="number" class="alpha-input" id="yellowAlpha" min="0" max="100" value="95" step="1">
+                  <span class="alpha-suffix">%</span>
+                </div>
+                <input type="checkbox" class="checkbox" id="showYellow" checked>
+              </div>
+            </div>
+            
+            <!-- Black -->
+            <div class="ink-group">
+              <div class="ink-header">
+                <div class="ink-dot" style="background: #000000; border: 1px solid #666"></div>
+                <span class="ink-name">Black</span>
+              </div>
+              <div class="ink-controls">
+                <div class="color-picker-left">
+                  <input type="color" id="blackInk" value="#000000" class="color-swatch-small">
+                  <input type="text" class="color-input-small" id="blackInk-text" value="000000">
+                </div>
+                <div class="alpha-container">
+                  <input type="number" class="alpha-input" id="blackAlpha" min="0" max="100" value="95" step="1">
+                  <span class="alpha-suffix">%</span>
+                </div>
+                <input type="checkbox" class="checkbox" id="showBlack" checked>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Paper -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Paper / Background</span>
+          </div>
+          <div class="section-content">
+            <div class="paper-controls">
+              <div class="color-picker-full">
+                <input type="color" id="paperColor" value="#f8f4e8" class="color-swatch-small">
+                <input type="text" class="color-input-small" id="paperColor-text" value="F8F4E8">
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Reset -->
+        <div style="padding: 16px 12px;">
+          <button class="btn btn-secondary" style="width: 100%;" onclick="resetDefaults()">
+            Reset to Defaults
+          </button>
+        </div>
+      </div>
+      
+      <div class="sidebar-footer">
+        <button class="btn btn-secondary" onclick="cancel()">Cancel</button>
+        <button class="btn btn-primary" id="apply-btn" onclick="applyHalftone()">Apply</button>
+      </div>
+    </div>
+    
+    <!-- Main preview area -->
+    <div class="main-area" id="main-area">
+      <div class="empty-state" id="empty-state">
+        <h2>Select an image</h2>
+        <p>Select an image or a shape with an image fill in Figma to apply the halftone effect.</p>
+      </div>
+      
+      <!-- Canvas container for zoom/pan -->
+      <div class="canvas-container" id="canvas-container" style="display: none;">
+        <div class="canvas-wrapper" id="canvas-wrapper">
+          <canvas id="preview-canvas"></canvas>
+        </div>
+      </div>
+      
+      <!-- Zoom controls -->
+      <div class="zoom-controls" id="zoom-controls" style="display: none;">
+        <button class="zoom-btn" id="zoom-out" title="Zoom out">−</button>
+        <span class="zoom-value" id="zoom-value">100%</span>
+        <button class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
+        <div class="zoom-divider"></div>
+        <button class="zoom-btn" id="zoom-fit" title="Fit to view">⊡</button>
+      </div>
+      
+      <div class="loading" id="loading" style="display: none;">Processing...</div>
+    </div>
+  </div>
+<script>
+"use strict";(()=>{var G="attribute vec2 a_position;\nattribute vec2 a_texCoord;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n  gl_Position = vec4(a_position, 0.0, 1.0);\n  v_texCoord = vec2(a_texCoord.x, 1.0 - a_texCoord.y);\n}\n";var W="#ifdef GL_OES_standard_derivatives\n#extension GL_OES_standard_derivatives : enable\n#endif\n\nprecision highp float;\n\nuniform sampler2D u_texture;\nuniform vec2 u_resolution;\n\n// Halftone parameters\nuniform float u_frequency;\nuniform float u_dotSize;\nuniform float u_roughness;\nuniform float u_fuzz;\nuniform float u_paperNoise;\nuniform float u_inkNoise;\nuniform float u_randomness;\nuniform float u_contrast;\nuniform float u_lightness;\nuniform float u_blur;\nuniform float u_threshold;\nuniform vec3 u_paperColor;\n\n// CMYK channel controls - angles in degrees\nuniform float u_cyanAngle;\nuniform float u_magentaAngle;\nuniform float u_yellowAngle;\nuniform float u_blackAngle;\n\nuniform vec4 u_cyanColor;\nuniform vec4 u_magentaColor;\nuniform vec4 u_yellowColor;\nuniform vec4 u_blackColor;\n\n// Layer visibility\nuniform bool u_showCyan;\nuniform bool u_showMagenta;\nuniform bool u_showYellow;\nuniform bool u_showBlack;\n\n// Blend mode: 0 = subtractive (multiply), 1 = additive, 2 = normal (alpha blend)\nuniform int u_blendMode;\n\nvarying vec2 v_texCoord;\n\n// Simplex noise implementation (simplified version of psrdnoise)\nvec3 mod289(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec2 mod289(vec2 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec3 permute(vec3 x) {\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nfloat simplexNoise(vec2 v) {\n  const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0\n                      0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)\n                     -0.577350269189626,  // -1.0 + 2.0 * C.x\n                      0.024390243902439); // 1.0 / 41.0\n  vec2 i  = floor(v + dot(v, C.yy) );\n  vec2 x0 = v -   i + dot(i, C.xx);\n  \n  vec2 i1;\n  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);\n  vec4 x12 = x0.xyxy + C.xxzz;\n  x12.xy -= i1;\n  \n  i = mod289(i);\n  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))\n                  + i.x + vec3(0.0, i1.x, 1.0 ));\n  \n  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);\n  m = m*m ;\n  m = m*m ;\n  \n  vec3 x = 2.0 * fract(p * C.www) - 1.0;\n  vec3 h = abs(x) - 0.5;\n  vec3 ox = floor(x + 0.5);\n  vec3 a0 = x - ox;\n  \n  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );\n  \n  vec3 g;\n  g.x  = a0.x  * x0.x  + h.x  * x0.y;\n  g.yz = a0.yz * x12.xz + h.yz * x12.yw;\n  return 130.0 * dot(m, g);\n}\n\n// Anti-aliased smoothstep with fallback\nfloat aasmoothstep(float edge0, float edge1, float x) {\n#ifdef GL_OES_standard_derivatives\n  float width = max(fwidth(x), 0.0001);\n  return smoothstep(edge0 - width, edge1 + width, x);\n#else\n  return smoothstep(edge0, edge1, x);\n#endif\n}\n\n// Anti-aliased step function with fallback\nfloat aastep(float threshold, float value) {\n#ifdef GL_OES_standard_derivatives\n  float width = max(fwidth(value), 0.0001);\n  return smoothstep(threshold - width, threshold + width, value);\n#else\n  return step(threshold, value);\n#endif\n}\n\n// Convert RGB to CMYK using proper grey component replacement\nvec4 rgbToCmyk(vec3 rgb) {\n  // RGB values are already normalized to 0-1 range\n  vec4 cmyk;\n  \n  // Black generation: K = 1 - max(R,G,B)\n  cmyk.w = 1.0 - max(max(rgb.r, rgb.g), rgb.b);\n  \n  // Grey component replacement for CMY channels\n  if (cmyk.w < 1.0) {\n    float oneMinusK = 1.0 - cmyk.w;\n    cmyk.x = (1.0 - rgb.r - cmyk.w) / oneMinusK; // Cyan\n    cmyk.y = (1.0 - rgb.g - cmyk.w) / oneMinusK; // Magenta\n    cmyk.z = (1.0 - rgb.b - cmyk.w) / oneMinusK; // Yellow\n  } else {\n    // Pure black case\n    cmyk.xyz = vec3(0.0);\n  }\n  \n  // Ensure values are in valid range\n  cmyk = clamp(cmyk, 0.0, 1.0);\n  \n  return cmyk;\n}\n\n// Create rotation matrix for given angle in degrees\nmat2 rotationMatrix(float angle) {\n  float rad = radians(angle);\n  float s = sin(rad);\n  float c = cos(rad);\n  return mat2(c, -s, s, c);\n}\n\nfloat hash(vec2 p) {\n  p = 50.0 * fract(p * 0.3183099 + vec2(0.71, 0.113));\n  return fract(p.x * p.y * (p.x + p.y));\n}\n\n// Generate halftone dot for a single channel with custom shapes and random position offsets\nfloat halftoneChannel(vec2 st, float channelValue, float angle, float roughness, float fuzz, float paperNoise) {\n  // Apply threshold - if value is below threshold, don't render dot at all\n  if (channelValue < u_threshold) {\n    return 0.0;\n  }\n  \n  // Apply aspect ratio correction to maintain circular dots\n  vec2 aspectCorrectedSt = st;\n  aspectCorrectedSt.x *= u_resolution.x / u_resolution.y;\n  \n  // Rotate coordinate system for screen angle\n  vec2 rotatedSt = rotationMatrix(angle) * aspectCorrectedSt * u_frequency;\n  \n  // Compute stable pixel width BEFORE fract() to avoid discontinuity artifacts\n  // fwidth on continuous coords gives the actual pixel footprint\n#ifdef GL_OES_standard_derivatives\n  float pixelWidth = length(fwidth(rotatedSt)) * 2.0;\n#else\n  float pixelWidth = 0.02;\n#endif\n  \n  vec2 gridPos = floor(rotatedSt);\n  \n  // Add randomness to dot positions if enabled\n  if (u_randomness > 0.0) {\n    // Generate random offsets for each grid cell using hash\n    float randX = hash(gridPos) - 0.5;\n    float randY = hash(gridPos + vec2(17.0, 31.0)) - 0.5;\n    \n    // Apply randomness scaling\n    vec2 randomOffset = vec2(randX, randY) * u_randomness * 0.8;\n    rotatedSt += randomOffset;\n  }\n  \n  // Get local coordinates within grid cell\n  vec2 uv = 2.0 * fract(rotatedSt) - 1.0;\n  \n  // Calculate base intensity and radius with enhanced contrast\n  float intensity = clamp(channelValue, 0.0, 1.0);\n  \n  // Use a power curve to emphasize differences: small values stay small, large values get larger\n  float contrastCurve = intensity * intensity; // Square for more dramatic contrast\n  \n  // Scale dot size with enhanced contrast\n  float baseRadius = (contrastCurve * u_dotSize);\n  \n  // Only add roughness for significant intensities to keep light areas clean\n  if (intensity > 0.1) {\n    baseRadius += roughness * paperNoise * intensity; // Scale roughness by intensity\n  }\n  \n  // Standard circular dot - distance from center\n  float dist = length(uv);\n  float radius = baseRadius - dist;\n  \n  // Use stable pixel width for anti-aliasing\n  // Clamp to reasonable range to avoid artifacts\n  float aaWidth = clamp(pixelWidth, 0.01, 0.1);\n  \n  // Simple anti-aliased dot with fuzz\n  // radius > 0 means inside the dot\n  float edge = smoothstep(-fuzz - aaWidth, aaWidth, radius);\n  \n  return edge;\n}\n\n// Gaussian function for blur weights\nfloat gaussian(float x, float sigma) {\n  return exp(-(x * x) / (2.0 * sigma * sigma));\n}\n\n// Pixelate UV coordinates to match a rotated halftone grid\n// Each channel needs its own pixelation based on its screen angle\nvec2 pixelateToRotatedGrid(vec2 uv, float freq, float angle) {\n  // Apply aspect ratio correction (same as in halftoneChannel)\n  vec2 aspectCorrected = uv;\n  aspectCorrected.x *= u_resolution.x / u_resolution.y;\n  \n  // Rotate to the channel's screen angle\n  vec2 rotatedUV = rotationMatrix(angle) * aspectCorrected * freq;\n  \n  // Find cell center in rotated space\n  vec2 cellCenter = floor(rotatedUV) + 0.5;\n  \n  // Rotate back and undo frequency scaling\n  mat2 invRotation = rotationMatrix(-angle);\n  vec2 unrotated = invRotation * cellCenter / freq;\n  \n  // Undo aspect ratio correction\n  unrotated.x /= u_resolution.x / u_resolution.y;\n  \n  return unrotated;\n}\n\n// Sample texture with optional blur at a specific position\nvec3 sampleWithBlur(vec2 samplePos) {\n  if (u_blur > 0.1) {\n    vec2 texelSize = 1.0 / u_resolution;\n    float sigma = u_blur / 3.0;\n    \n    vec3 colorSum = vec3(0.0);\n    float weightSum = 0.0;\n    \n    for (int x = -4; x <= 4; x++) {\n      for (int y = -4; y <= 4; y++) {\n        vec2 offset = vec2(float(x), float(y)) * texelSize * (u_blur / 4.0);\n        float dist = length(vec2(float(x), float(y)));\n        float weight = gaussian(dist, sigma);\n        \n        if (weight > 0.001) {\n          colorSum += texture2D(u_texture, samplePos + offset).rgb * weight;\n          weightSum += weight;\n        }\n      }\n    }\n    \n    return colorSum / weightSum;\n  } else {\n    return texture2D(u_texture, samplePos).rgb;\n  }\n}\n\n// Apply contrast and lightness adjustments\nvec3 adjustColor(vec3 color) {\n  color = (color - 0.5) * u_contrast + 0.5;\n  color = color + u_lightness;\n  return clamp(color, 0.0, 1.0);\n}\n\nvoid main() {\n  vec2 st = v_texCoord;\n  \n  // Sample for display/blending purposes (non-pixelated for smooth result)\n  vec3 texcolor = adjustColor(sampleWithBlur(st));\n  \n  // Generate fractal noise for paper texture\n  vec2 p = vec2(0.0);\n  float s = 100.0; // Scale for the \"paper fibers\" texture\n  float w = 0.5;\n  float f = 0.0;\n  vec2 g = vec2(0.0);\n  \n  // 4 octaves of fractal noise (reduced from 6 for performance)\n  for(int i = 0; i < 4; i++) {\n    f += w * simplexNoise(s * vec2(2.0, 1.0) * st);\n    w *= 0.55;\n    s *= 2.2;\n  }\n  float paperNoiseValue = 0.1 * f + 0.05 * length(g);\n  \n  // Paper and ink colors with noise\n  vec3 paper = u_paperColor - u_paperNoise * paperNoiseValue;\n  float inkamount = 0.9 - u_inkNoise * paperNoiseValue;\n  \n  // For each channel, sample at grid-aligned position with that channel's angle\n  // This ensures consistent dot sizes within each rotated halftone cell\n  \n  // Cyan channel - pixelate to cyan's rotated grid\n  vec2 cyanSamplePos = pixelateToRotatedGrid(st, u_frequency, u_cyanAngle);\n  vec3 cyanColor = adjustColor(sampleWithBlur(cyanSamplePos));\n  vec4 cyanCmyk = rgbToCmyk(cyanColor);\n  \n  // Magenta channel - pixelate to magenta's rotated grid\n  vec2 magentaSamplePos = pixelateToRotatedGrid(st, u_frequency, u_magentaAngle);\n  vec3 magentaColor = adjustColor(sampleWithBlur(magentaSamplePos));\n  vec4 magentaCmyk = rgbToCmyk(magentaColor);\n  \n  // Yellow channel - pixelate to yellow's rotated grid\n  vec2 yellowSamplePos = pixelateToRotatedGrid(st, u_frequency, u_yellowAngle);\n  vec3 yellowColor = adjustColor(sampleWithBlur(yellowSamplePos));\n  vec4 yellowCmyk = rgbToCmyk(yellowColor);\n  \n  // Black channel - pixelate to black's rotated grid\n  vec2 blackSamplePos = pixelateToRotatedGrid(st, u_frequency, u_blackAngle);\n  vec3 blackColor = adjustColor(sampleWithBlur(blackSamplePos));\n  vec4 blackCmyk = rgbToCmyk(blackColor);\n  \n  // Generate halftone dots for each channel\n  // Each channel uses its own grid-aligned CMYK sample for consistent dots\n  float c = 0.0, m = 0.0, y = 0.0, k = 0.0;\n  \n  if (u_showCyan && cyanCmyk.x > 0.001) {\n    c = halftoneChannel(st, cyanCmyk.x, u_cyanAngle, u_roughness, u_fuzz, paperNoiseValue);\n  }\n  \n  if (u_showMagenta && magentaCmyk.y > 0.001) {\n    m = halftoneChannel(st, magentaCmyk.y, u_magentaAngle, u_roughness, u_fuzz, paperNoiseValue);\n  }\n  \n  if (u_showYellow && yellowCmyk.z > 0.001) {\n    y = halftoneChannel(st, yellowCmyk.z, u_yellowAngle, u_roughness, u_fuzz, paperNoiseValue);\n  }\n  \n  if (u_showBlack && blackCmyk.w > 0.001) {\n    k = halftoneChannel(st, blackCmyk.w, u_blackAngle, u_roughness, u_fuzz, paperNoiseValue);\n  }\n  \n  // Start with paper color\n  vec3 rgbscreen = paper;\n  \n  // Apply each ink layer with selected blend mode\n  if (u_showCyan && c > 0.0) {\n    vec3 cyanInk = u_cyanColor.rgb;\n    float cyanAlpha = u_cyanColor.a * c * inkamount;\n    \n    if (u_blendMode == 0) {\n      // Subtractive (multiply) - traditional CMYK\n      rgbscreen = mix(rgbscreen, rgbscreen * cyanInk, cyanAlpha);\n    } else if (u_blendMode == 1) {\n      // Additive - for light inks on dark backgrounds\n      rgbscreen = clamp(rgbscreen + cyanInk * cyanAlpha, 0.0, 1.0);\n    } else {\n      // Normal (alpha blend) - most flexible\n      rgbscreen = mix(rgbscreen, cyanInk, cyanAlpha);\n    }\n  }\n  \n  if (u_showMagenta && m > 0.0) {\n    vec3 magentaInk = u_magentaColor.rgb;\n    float magentaAlpha = u_magentaColor.a * m * inkamount;\n    \n    if (u_blendMode == 0) {\n      rgbscreen = mix(rgbscreen, rgbscreen * magentaInk, magentaAlpha);\n    } else if (u_blendMode == 1) {\n      rgbscreen = clamp(rgbscreen + magentaInk * magentaAlpha, 0.0, 1.0);\n    } else {\n      rgbscreen = mix(rgbscreen, magentaInk, magentaAlpha);\n    }\n  }\n  \n  if (u_showYellow && y > 0.0) {\n    vec3 yellowInk = u_yellowColor.rgb;\n    float yellowAlpha = u_yellowColor.a * y * inkamount;\n    \n    if (u_blendMode == 0) {\n      rgbscreen = mix(rgbscreen, rgbscreen * yellowInk, yellowAlpha);\n    } else if (u_blendMode == 1) {\n      rgbscreen = clamp(rgbscreen + yellowInk * yellowAlpha, 0.0, 1.0);\n    } else {\n      rgbscreen = mix(rgbscreen, yellowInk, yellowAlpha);\n    }\n  }\n  \n  if (u_showBlack && k > 0.0) {\n    vec3 blackInk = u_blackColor.rgb;\n    float blackAlpha = u_blackColor.a * k * inkamount;\n    \n    if (u_blendMode == 0) {\n      rgbscreen = mix(rgbscreen, rgbscreen * blackInk, blackAlpha);\n    } else if (u_blendMode == 1) {\n      rgbscreen = clamp(rgbscreen + blackInk * blackAlpha, 0.0, 1.0);\n    } else {\n      rgbscreen = mix(rgbscreen, blackInk, blackAlpha);\n    }\n  }\n  \n  // Blend to plain RGB texture under extreme minification (with fallback)\n#ifdef GL_OES_standard_derivatives\n  float afwidth = 2.0 * u_frequency * max(length(dFdx(st)), length(dFdy(st)));\n  float blend = smoothstep(0.7, 1.4, afwidth);\n#else\n  float blend = 0.0; // No blending without derivatives\n#endif\n  \n  vec3 finalColor = mix(rgbscreen, texcolor, blend);\n  \n  gl_FragColor = vec4(finalColor, 1.0);  \n}\n";var x=class{constructor(e){this.gl=null;this.program=null;this.texture=null;this.uniforms=null;this.imageWidth=0;this.imageHeight=0;this.isImageLoaded=!1;this.canvas=e}init(){if(this.gl=this.canvas.getContext("webgl",{preserveDrawingBuffer:!0}),!this.gl)return console.error("WebGL not supported"),!1;this.gl.getExtension("OES_standard_derivatives");let e=this.createShader(this.gl.VERTEX_SHADER,G),o=this.createShader(this.gl.FRAGMENT_SHADER,W);if(!e||!o)return console.error("Failed to create shaders"),!1;if(this.program=this.gl.createProgram(),!this.program)return!1;if(this.gl.attachShader(this.program,e),this.gl.attachShader(this.program,o),this.gl.linkProgram(this.program),!this.gl.getProgramParameter(this.program,this.gl.LINK_STATUS))return console.error("Program link error:",this.gl.getProgramInfoLog(this.program)),!1;this.uniforms={u_texture:this.gl.getUniformLocation(this.program,"u_texture"),u_resolution:this.gl.getUniformLocation(this.program,"u_resolution"),u_frequency:this.gl.getUniformLocation(this.program,"u_frequency"),u_dotSize:this.gl.getUniformLocation(this.program,"u_dotSize"),u_roughness:this.gl.getUniformLocation(this.program,"u_roughness"),u_fuzz:this.gl.getUniformLocation(this.program,"u_fuzz"),u_paperNoise:this.gl.getUniformLocation(this.program,"u_paperNoise"),u_inkNoise:this.gl.getUniformLocation(this.program,"u_inkNoise"),u_randomness:this.gl.getUniformLocation(this.program,"u_randomness"),u_contrast:this.gl.getUniformLocation(this.program,"u_contrast"),u_lightness:this.gl.getUniformLocation(this.program,"u_lightness"),u_blur:this.gl.getUniformLocation(this.program,"u_blur"),u_threshold:this.gl.getUniformLocation(this.program,"u_threshold"),u_paperColor:this.gl.getUniformLocation(this.program,"u_paperColor"),u_cyanAngle:this.gl.getUniformLocation(this.program,"u_cyanAngle"),u_magentaAngle:this.gl.getUniformLocation(this.program,"u_magentaAngle"),u_yellowAngle:this.gl.getUniformLocation(this.program,"u_yellowAngle"),u_blackAngle:this.gl.getUniformLocation(this.program,"u_blackAngle"),u_cyanColor:this.gl.getUniformLocation(this.program,"u_cyanColor"),u_magentaColor:this.gl.getUniformLocation(this.program,"u_magentaColor"),u_yellowColor:this.gl.getUniformLocation(this.program,"u_yellowColor"),u_blackColor:this.gl.getUniformLocation(this.program,"u_blackColor"),u_showCyan:this.gl.getUniformLocation(this.program,"u_showCyan"),u_showMagenta:this.gl.getUniformLocation(this.program,"u_showMagenta"),u_showYellow:this.gl.getUniformLocation(this.program,"u_showYellow"),u_showBlack:this.gl.getUniformLocation(this.program,"u_showBlack"),u_blendMode:this.gl.getUniformLocation(this.program,"u_blendMode")};let a=new Float32Array([-1,-1,0,0,1,-1,1,0,-1,1,0,1,1,1,1,1]),s=this.gl.createBuffer();this.gl.bindBuffer(this.gl.ARRAY_BUFFER,s),this.gl.bufferData(this.gl.ARRAY_BUFFER,a,this.gl.STATIC_DRAW);let u=this.gl.getAttribLocation(this.program,"a_position"),r=this.gl.getAttribLocation(this.program,"a_texCoord");return this.gl.enableVertexAttribArray(u),this.gl.enableVertexAttribArray(r),this.gl.vertexAttribPointer(u,2,this.gl.FLOAT,!1,16,0),this.gl.vertexAttribPointer(r,2,this.gl.FLOAT,!1,16,8),!0}createShader(e,o){if(!this.gl)return null;let a=this.gl.createShader(e);return a?(this.gl.shaderSource(a,o),this.gl.compileShader(a),this.gl.getShaderParameter(a,this.gl.COMPILE_STATUS)?a:(console.error("Shader compile error:",this.gl.getShaderInfoLog(a)),this.gl.deleteShader(a),null)):null}async loadImageFromBytes(e){return new Promise((o,a)=>{let s=new Blob([e]),u=URL.createObjectURL(s),r=new Image;r.onload=()=>{URL.revokeObjectURL(u),o(r)},r.onerror=()=>{URL.revokeObjectURL(u),a(new Error("Failed to load image"))},r.src=u})}setupTexture(e){this.gl&&(this.texture&&this.gl.deleteTexture(this.texture),this.texture=this.gl.createTexture(),this.gl.bindTexture(this.gl.TEXTURE_2D,this.texture),this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_WRAP_S,this.gl.CLAMP_TO_EDGE),this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_WRAP_T,this.gl.CLAMP_TO_EDGE),this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_MIN_FILTER,this.gl.LINEAR),this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_MAG_FILTER,this.gl.LINEAR),this.gl.texImage2D(this.gl.TEXTURE_2D,0,this.gl.RGBA,this.gl.RGBA,this.gl.UNSIGNED_BYTE,e),console.log("Image dimensions:",e.width,"x",e.height),console.log("Natural dimensions:",e.naturalWidth,"x",e.naturalHeight),this.imageWidth=e.width,this.imageHeight=e.height,this.canvas.width=e.width,this.canvas.height=e.height,this.canvas.style.width=e.width+"px",this.canvas.style.height=e.height+"px",console.log("Canvas set to:",this.canvas.width,"x",this.canvas.height),this.gl.viewport(0,0,e.width,e.height),this.isImageLoaded=!0)}hexToRgb(e){let o=parseInt(e.slice(1,3),16)/255,a=parseInt(e.slice(3,5),16)/255,s=parseInt(e.slice(5,7),16)/255;return[o,a,s]}render(e){if(!this.gl||!this.program||!this.texture||!this.uniforms||!this.isImageLoaded)return;this.gl.useProgram(this.program),this.gl.clearColor(0,0,0,0),this.gl.clear(this.gl.COLOR_BUFFER_BIT),this.gl.activeTexture(this.gl.TEXTURE0),this.gl.bindTexture(this.gl.TEXTURE_2D,this.texture),this.gl.uniform1i(this.uniforms.u_texture,0),this.gl.uniform2f(this.uniforms.u_resolution,this.imageWidth,this.imageHeight),this.gl.uniform1f(this.uniforms.u_frequency,e.frequency),this.gl.uniform1f(this.uniforms.u_dotSize,e.dotSize),this.gl.uniform1f(this.uniforms.u_roughness,e.roughness),this.gl.uniform1f(this.uniforms.u_fuzz,e.fuzz),this.gl.uniform1f(this.uniforms.u_paperNoise,e.paperNoise),this.gl.uniform1f(this.uniforms.u_inkNoise,e.inkNoise),this.gl.uniform1f(this.uniforms.u_randomness,e.randomness),this.gl.uniform1f(this.uniforms.u_contrast,e.contrast),this.gl.uniform1f(this.uniforms.u_lightness,e.lightness),this.gl.uniform1f(this.uniforms.u_blur,e.blur),this.gl.uniform1f(this.uniforms.u_threshold,e.threshold);let o=this.hexToRgb(e.paperColor);this.gl.uniform3f(this.uniforms.u_paperColor,o[0],o[1],o[2]),this.gl.uniform1f(this.uniforms.u_cyanAngle,e.cyanAngle),this.gl.uniform1f(this.uniforms.u_magentaAngle,e.magentaAngle),this.gl.uniform1f(this.uniforms.u_yellowAngle,e.yellowAngle),this.gl.uniform1f(this.uniforms.u_blackAngle,e.blackAngle);let a=this.hexToRgb(e.cyanInk);this.gl.uniform4f(this.uniforms.u_cyanColor,a[0],a[1],a[2],e.cyanAlpha);let s=this.hexToRgb(e.magentaInk);this.gl.uniform4f(this.uniforms.u_magentaColor,s[0],s[1],s[2],e.magentaAlpha);let u=this.hexToRgb(e.yellowInk);this.gl.uniform4f(this.uniforms.u_yellowColor,u[0],u[1],u[2],e.yellowAlpha);let r=this.hexToRgb(e.blackInk);this.gl.uniform4f(this.uniforms.u_blackColor,r[0],r[1],r[2],e.blackAlpha),this.gl.uniform1i(this.uniforms.u_showCyan,e.showCyan?1:0),this.gl.uniform1i(this.uniforms.u_showMagenta,e.showMagenta?1:0),this.gl.uniform1i(this.uniforms.u_showYellow,e.showYellow?1:0),this.gl.uniform1i(this.uniforms.u_showBlack,e.showBlack?1:0),this.gl.uniform1i(this.uniforms.u_blendMode,e.blendMode),this.gl.drawArrays(this.gl.TRIANGLE_STRIP,0,4)}getImageBlob(){return new Promise((e,o)=>{this.canvas.toBlob(a=>{a?e(a):o(new Error("Failed to create blob"))},"image/png")})}};var t={frequency:85,dotSize:1,roughness:2,fuzz:.1,paperNoise:0,inkNoise:.6,randomness:.2,contrast:1,lightness:0,blur:1,threshold:.05,blendMode:0,cyanAngle:15,magentaAngle:75,yellowAngle:0,blackAngle:45,cyanInk:"#00FFFF",cyanAlpha:.95,magentaInk:"#FF00FF",magentaAlpha:.95,yellowInk:"#FFFF00",yellowAlpha:.95,blackInk:"#000000",blackAlpha:.95,paperColor:"#f8f4e8",showCyan:!0,showMagenta:!0,showYellow:!0,showBlack:!0};function f(n){return document.getElementById(n)}function l(n,e="number"){let o=f(n);return o?e==="boolean"?o.checked:e==="number"?parseFloat(o.value):o.value:e==="boolean"?!1:e==="number"?0:""}function N(){return{frequency:l("frequency"),dotSize:l("dotSize"),roughness:l("roughness"),fuzz:l("fuzz"),paperNoise:l("paperNoise"),inkNoise:l("inkNoise"),randomness:l("randomness"),contrast:l("contrast"),lightness:l("lightness"),blur:l("blur"),threshold:l("threshold"),blendMode:l("blendMode"),cyanAngle:l("cyanAngle"),magentaAngle:l("magentaAngle"),yellowAngle:l("yellowAngle"),blackAngle:l("blackAngle"),cyanInk:l("cyanInk","string"),cyanAlpha:l("cyanAlpha")/100,magentaInk:l("magentaInk","string"),magentaAlpha:l("magentaAlpha")/100,yellowInk:l("yellowInk","string"),yellowAlpha:l("yellowAlpha")/100,blackInk:l("blackInk","string"),blackAlpha:l("blackAlpha")/100,paperColor:l("paperColor","string"),showCyan:l("showCyan","boolean"),showMagenta:l("showMagenta","boolean"),showYellow:l("showYellow","boolean"),showBlack:l("showBlack","boolean")}}function g(n,e,o=""){let a=f("".concat(n,"-val"));a&&(a.textContent=e+o)}function F(n){[{id:"frequency"},{id:"dotSize",decimals:2},{id:"roughness",decimals:1},{id:"fuzz",decimals:2},{id:"paperNoise",decimals:2},{id:"inkNoise",decimals:2},{id:"randomness",decimals:2},{id:"contrast",decimals:2},{id:"lightness",decimals:2},{id:"blur",decimals:1},{id:"threshold",decimals:2},{id:"cyanAngle",suffix:"\xB0"},{id:"magentaAngle",suffix:"\xB0"},{id:"yellowAngle",suffix:"\xB0"},{id:"blackAngle",suffix:"\xB0"}].forEach(({id:r,suffix:i="",decimals:m})=>{let h=f(r);h&&h.addEventListener("input",()=>{let w=m!==void 0?parseFloat(h.value).toFixed(m):h.value;g(r,w,i),n()})}),["cyanInk","magentaInk","yellowInk","blackInk","paperColor"].forEach(r=>{let i=f(r),m=f("".concat(r,"-text"));i&&m&&(i.addEventListener("input",()=>{m.value=i.value.slice(1).toUpperCase(),n()}),m.addEventListener("change",()=>{var h=m.value.replace("#","");/^[0-9A-Fa-f]{6}$/.test(h)&&(i.value="#"+h,m.value=h.toUpperCase(),n())}))}),["showCyan","showMagenta","showYellow","showBlack"].forEach(r=>{let i=f(r);i&&i.addEventListener("change",n)}),["cyanAlpha","magentaAlpha","yellowAlpha","blackAlpha"].forEach(r=>{let i=f(r),m=i==null?void 0:i.parentElement;if(!i||!m)return;i.addEventListener("input",n),i.addEventListener("change",n);let h=!1,w=0,B=0;m.addEventListener("mousedown",function(_){_.target!==i&&(h=!0,w=_.clientX,B=parseInt(i.value)||0,document.body.style.cursor="ew-resize",_.preventDefault())}),document.addEventListener("mousemove",function(_){if(!h)return;let V=_.clientX-w,M=B+Math.round(V*.5);M=Math.max(0,Math.min(100,M)),i.value=String(M),n()}),document.addEventListener("mouseup",function(){h&&(h=!1,document.body.style.cursor="")})});let u=f("blendMode");u&&u.addEventListener("change",n)}function P(n){let e=(o,a)=>{let s=f(o);s&&(typeof a=="boolean"?s.checked=a:s.value=String(a))};e("frequency",t.frequency),e("dotSize",t.dotSize),e("roughness",t.roughness),e("fuzz",t.fuzz),e("paperNoise",t.paperNoise),e("inkNoise",t.inkNoise),e("randomness",t.randomness),e("contrast",t.contrast),e("lightness",t.lightness),e("blur",t.blur),e("threshold",t.threshold),e("blendMode",t.blendMode),e("cyanAngle",t.cyanAngle),e("magentaAngle",t.magentaAngle),e("yellowAngle",t.yellowAngle),e("blackAngle",t.blackAngle),e("cyanInk",t.cyanInk),e("cyanInk-text",t.cyanInk.slice(1)),e("cyanAlpha",Math.round(t.cyanAlpha*100)),e("magentaInk",t.magentaInk),e("magentaInk-text",t.magentaInk.slice(1)),e("magentaAlpha",Math.round(t.magentaAlpha*100)),e("yellowInk",t.yellowInk),e("yellowInk-text",t.yellowInk.slice(1)),e("yellowAlpha",Math.round(t.yellowAlpha*100)),e("blackInk",t.blackInk),e("blackInk-text",t.blackInk.slice(1)),e("blackAlpha",Math.round(t.blackAlpha*100)),e("paperColor",t.paperColor),e("paperColor-text",t.paperColor.slice(1).toUpperCase()),e("showCyan",t.showCyan),e("showMagenta",t.showMagenta),e("showYellow",t.showYellow),e("showBlack",t.showBlack),g("frequency",t.frequency),g("dotSize",t.dotSize.toFixed(2)),g("roughness",t.roughness.toFixed(1)),g("fuzz",t.fuzz.toFixed(2)),g("paperNoise",t.paperNoise.toFixed(2)),g("inkNoise",t.inkNoise.toFixed(2)),g("randomness",t.randomness.toFixed(2)),g("contrast",t.contrast.toFixed(2)),g("lightness",t.lightness.toFixed(2)),g("blur",t.blur.toFixed(1)),g("threshold",t.threshold.toFixed(2)),g("cyanAngle",t.cyanAngle,"\xB0"),g("magentaAngle",t.magentaAngle,"\xB0"),g("yellowAngle",t.yellowAngle,"\xB0"),g("blackAngle",t.blackAngle,"\xB0"),n()}var z=document.getElementById("preview-canvas"),p=document.getElementById("canvas-container"),K=document.getElementById("canvas-wrapper"),j=document.getElementById("main-area"),U=document.getElementById("empty-state"),R=document.getElementById("loading"),Y=document.getElementById("zoom-controls"),D=document.getElementById("zoom-in"),O=document.getElementById("zoom-out"),Z=document.getElementById("zoom-fit"),$=document.getElementById("zoom-value"),d=new x(z),c=1,y=0,v=0,k=!1,S=0,T=0,C=.1,E=5,q=.1;function I(){let n=Math.round(c*100);$.textContent=n+"%",D.disabled=c>=E,O.disabled=c<=C}function b(){K.style.transform="translate(-50%, -50%) translate("+y+"px, "+v+"px) scale("+c+")"}function J(){c=Math.min(E,c+q),I(),b()}function Q(){c=Math.max(C,c-q),I(),b()}function X(){if(!d.isImageLoaded)return;let n=p.clientWidth-40,e=p.clientHeight-40,o=z.width,a=z.height,s=n/o,u=e/a;c=Math.min(s,u,E),c=Math.max(c,C),y=0,v=0,I(),b()}function A(){d.isImageLoaded&&d.render(N())}async function ee(){if(d.isImageLoaded){A();try{let e=await(await d.getImageBlob()).arrayBuffer(),o=new Uint8Array(e);parent.postMessage({pluginMessage:{type:"apply-halftone",imageData:o,width:d.imageWidth,height:d.imageHeight}},"*")}catch(n){console.error("Failed to apply halftone:",n)}}}function ne(){parent.postMessage({pluginMessage:{type:"cancel"}},"*")}function L(n,e){R.style.display="none",p.style.display="none",Y.style.display="none",U.innerHTML="<h2>"+n+"</h2><p>"+e+"</p>",U.style.display="block"}async function te(n){switch(n.type){case"image-data":if(!n.imageData)return;try{R.style.display="block",U.style.display="none";let e=await d.loadImageFromBytes(n.imageData);d.setupTexture(e),A(),p.style.display="block",Y.style.display="flex",R.style.display="none",X()}catch(e){L("Error loading image",e.message)}break;case"no-selection":L("Select an image",n.message||"Please select an image or shape with an image fill.");break;case"error":L("Error",n.message||"An error occurred.");break}}function oe(){D.addEventListener("click",J),O.addEventListener("click",Q),Z.addEventListener("click",X),p.addEventListener("wheel",function(n){if(n.preventDefault(),n.ctrlKey||n.metaKey){var e=p.getBoundingClientRect(),o=n.clientX-e.left-e.width/2,a=n.clientY-e.top-e.height/2,s=.01,u=-n.deltaY*s,r=c;c=c*(1+u),c=Math.max(C,Math.min(E,c));var i=c/r;y=o-(o-y)*i,v=a-(a-v)*i,I(),b()}else y-=n.deltaX,v-=n.deltaY,b()}),p.addEventListener("mousedown",function(n){n.button===0&&(k=!0,S=n.clientX,T=n.clientY,p.style.cursor="grabbing")}),document.addEventListener("mousemove",function(n){if(k){let e=n.clientX-S,o=n.clientY-T;y+=e,v+=o,S=n.clientX,T=n.clientY,b()}}),document.addEventListener("mouseup",function(){k&&(k=!1,p.style.cursor="grab")})}function ae(){new ResizeObserver(function(){d.isImageLoaded&&b()}).observe(j)}function H(){if(!d.init()){L("WebGL not supported","This plugin requires WebGL. Please try a different browser.");return}F(A),oe(),ae(),window.applyHalftone=ee,window.cancel=ne,window.resetDefaults=function(){P(A)},window.onmessage=function(n){let e=n.data.pluginMessage;e&&te(e)},parent.postMessage({pluginMessage:{type:"get-selection"}},"*")}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",H):H();})();
+
+</script>
+</body>
+</html>
+
