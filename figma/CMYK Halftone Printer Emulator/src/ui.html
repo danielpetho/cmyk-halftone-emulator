@@ -143,73 +143,77 @@
           <div class="section-content">
             <!-- Cyan -->
             <div class="ink-group">
-              <div class="ink-group-header">
+              <div class="ink-header">
                 <div class="ink-dot" style="background: #00FFFF"></div>
                 <span class="ink-name">Cyan</span>
+              </div>
+              <div class="ink-controls">
+                <div class="color-picker-left">
+                  <input type="color" id="cyanInk" value="#00FFFF" class="color-swatch-small">
+                  <input type="text" class="color-input-small" id="cyanInk-text" value="00FFFF">
+                </div>
+                <div class="alpha-container">
+                  <input type="number" class="alpha-input" id="cyanAlpha" min="0" max="100" value="95" step="1">
+                  <span class="alpha-suffix">%</span>
+                </div>
                 <input type="checkbox" class="checkbox" id="showCyan" checked>
-              </div>
-              <div class="color-row">
-                <input type="color" id="cyanInk" value="#00FFFF" class="color-swatch">
-                <input type="text" class="color-input" id="cyanInk-text" value="#00FFFF">
-              </div>
-              <div class="control-row">
-                <span class="control-label">Alpha</span>
-                <input type="range" id="cyanAlpha" min="0" max="1" value="0.95" step="0.01">
-                <span class="control-value" id="cyanAlpha-val">0.95</span>
               </div>
             </div>
             
             <!-- Magenta -->
             <div class="ink-group">
-              <div class="ink-group-header">
+              <div class="ink-header">
                 <div class="ink-dot" style="background: #FF00FF"></div>
                 <span class="ink-name">Magenta</span>
+              </div>
+              <div class="ink-controls">
+                <div class="color-picker-left">
+                  <input type="color" id="magentaInk" value="#FF00FF" class="color-swatch-small">
+                  <input type="text" class="color-input-small" id="magentaInk-text" value="FF00FF">
+                </div>
+                <div class="alpha-container">
+                  <input type="number" class="alpha-input" id="magentaAlpha" min="0" max="100" value="95" step="1">
+                  <span class="alpha-suffix">%</span>
+                </div>
                 <input type="checkbox" class="checkbox" id="showMagenta" checked>
-              </div>
-              <div class="color-row">
-                <input type="color" id="magentaInk" value="#FF00FF" class="color-swatch">
-                <input type="text" class="color-input" id="magentaInk-text" value="#FF00FF">
-              </div>
-              <div class="control-row">
-                <span class="control-label">Alpha</span>
-                <input type="range" id="magentaAlpha" min="0" max="1" value="0.95" step="0.01">
-                <span class="control-value" id="magentaAlpha-val">0.95</span>
               </div>
             </div>
             
             <!-- Yellow -->
             <div class="ink-group">
-              <div class="ink-group-header">
+              <div class="ink-header">
                 <div class="ink-dot" style="background: #FFFF00"></div>
                 <span class="ink-name">Yellow</span>
+              </div>
+              <div class="ink-controls">
+                <div class="color-picker-left">
+                  <input type="color" id="yellowInk" value="#FFFF00" class="color-swatch-small">
+                  <input type="text" class="color-input-small" id="yellowInk-text" value="FFFF00">
+                </div>
+                <div class="alpha-container">
+                  <input type="number" class="alpha-input" id="yellowAlpha" min="0" max="100" value="95" step="1">
+                  <span class="alpha-suffix">%</span>
+                </div>
                 <input type="checkbox" class="checkbox" id="showYellow" checked>
-              </div>
-              <div class="color-row">
-                <input type="color" id="yellowInk" value="#FFFF00" class="color-swatch">
-                <input type="text" class="color-input" id="yellowInk-text" value="#FFFF00">
-              </div>
-              <div class="control-row">
-                <span class="control-label">Alpha</span>
-                <input type="range" id="yellowAlpha" min="0" max="1" value="0.95" step="0.01">
-                <span class="control-value" id="yellowAlpha-val">0.95</span>
               </div>
             </div>
             
             <!-- Black -->
             <div class="ink-group">
-              <div class="ink-group-header">
+              <div class="ink-header">
                 <div class="ink-dot" style="background: #000000; border: 1px solid #666"></div>
                 <span class="ink-name">Black</span>
+              </div>
+              <div class="ink-controls">
+                <div class="color-picker-left">
+                  <input type="color" id="blackInk" value="#000000" class="color-swatch-small">
+                  <input type="text" class="color-input-small" id="blackInk-text" value="000000">
+                </div>
+                <div class="alpha-container">
+                  <input type="number" class="alpha-input" id="blackAlpha" min="0" max="100" value="95" step="1">
+                  <span class="alpha-suffix">%</span>
+                </div>
                 <input type="checkbox" class="checkbox" id="showBlack" checked>
-              </div>
-              <div class="color-row">
-                <input type="color" id="blackInk" value="#000000" class="color-swatch">
-                <input type="text" class="color-input" id="blackInk-text" value="#000000">
-              </div>
-              <div class="control-row">
-                <span class="control-label">Alpha</span>
-                <input type="range" id="blackAlpha" min="0" max="1" value="0.95" step="0.01">
-                <span class="control-value" id="blackAlpha-val">0.95</span>
               </div>
             </div>
           </div>
@@ -221,15 +225,17 @@
             <span class="section-title">Paper / Background</span>
           </div>
           <div class="section-content">
-            <div class="color-row">
-              <input type="color" id="paperColor" value="#f8f4e8" class="color-swatch">
-              <input type="text" class="color-input" id="paperColor-text" value="#f8f4e8">
+            <div class="paper-controls">
+              <div class="color-picker-full">
+                <input type="color" id="paperColor" value="#f8f4e8" class="color-swatch-small">
+                <input type="text" class="color-input-small" id="paperColor-text" value="F8F4E8">
+              </div>
             </div>
           </div>
         </div>
         
         <!-- Reset -->
-        <div style="padding: 8px 0;">
+        <div style="padding: 16px 12px;">
           <button class="btn btn-secondary" style="width: 100%;" onclick="resetDefaults()">
             Reset to Defaults
           </button>

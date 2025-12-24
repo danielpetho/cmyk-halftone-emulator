@@ -40,13 +40,13 @@ export function getSettings(): HalftoneSettings {
     yellowAngle: getInputValue('yellowAngle') as number,
     blackAngle: getInputValue('blackAngle') as number,
     cyanInk: getInputValue('cyanInk', 'string') as string,
-    cyanAlpha: getInputValue('cyanAlpha') as number,
+    cyanAlpha: (getInputValue('cyanAlpha') as number) / 100,
     magentaInk: getInputValue('magentaInk', 'string') as string,
-    magentaAlpha: getInputValue('magentaAlpha') as number,
+    magentaAlpha: (getInputValue('magentaAlpha') as number) / 100,
     yellowInk: getInputValue('yellowInk', 'string') as string,
-    yellowAlpha: getInputValue('yellowAlpha') as number,
+    yellowAlpha: (getInputValue('yellowAlpha') as number) / 100,
     blackInk: getInputValue('blackInk', 'string') as string,
-    blackAlpha: getInputValue('blackAlpha') as number,
+    blackAlpha: (getInputValue('blackAlpha') as number) / 100,
     paperColor: getInputValue('paperColor', 'string') as string,
     showCyan: getInputValue('showCyan', 'boolean') as boolean,
     showMagenta: getInputValue('showMagenta', 'boolean') as boolean,
@@ -61,14 +61,6 @@ function updateValueDisplay(id: string, value: string | number, suffix = ''): vo
   if (el) {
     el.textContent = value + suffix;
   }
-}
-
-// Toggle section collapse
-export function toggleSection(header: HTMLElement): void {
-  const content = header.nextElementSibling as HTMLElement;
-  const arrow = header.querySelector('span:last-child') as HTMLElement;
-  content.classList.toggle('collapsed');
-  arrow.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
 }
 
 // Setup all control event listeners
@@ -89,11 +81,7 @@ export function setupControls(onRender: RenderCallback): void {
     { id: 'cyanAngle', suffix: '°' },
     { id: 'magentaAngle', suffix: '°' },
     { id: 'yellowAngle', suffix: '°' },
-    { id: 'blackAngle', suffix: '°' },
-    { id: 'cyanAlpha', decimals: 2 },
-    { id: 'magentaAlpha', decimals: 2 },
-    { id: 'yellowAlpha', decimals: 2 },
-    { id: 'blackAlpha', decimals: 2 }
+    { id: 'blackAngle', suffix: '°' }
   ];
 
   rangeInputs.forEach(({ id, suffix = '', decimals }) => {
@@ -109,7 +97,7 @@ export function setupControls(onRender: RenderCallback): void {
     }
   });
 
-  // Color inputs
+  // Color inputs (text displays without #, but color input needs #)
   const colorInputs = ['cyanInk', 'magentaInk', 'yellowInk', 'blackInk', 'paperColor'];
   colorInputs.forEach(id => {
     const colorInput = $(id) as HTMLInputElement | null;
@@ -117,13 +105,17 @@ export function setupControls(onRender: RenderCallback): void {
     
     if (colorInput && textInput) {
       colorInput.addEventListener('input', () => {
-        textInput.value = colorInput.value.toUpperCase();
+        // Remove # for display
+        textInput.value = colorInput.value.slice(1).toUpperCase();
         onRender();
       });
       
       textInput.addEventListener('change', () => {
-        if (/^#[0-9A-Fa-f]{6}$/.test(textInput.value)) {
-          colorInput.value = textInput.value;
+        // Accept with or without #
+        var val = textInput.value.replace('#', '');
+        if (/^[0-9A-Fa-f]{6}$/.test(val)) {
+          colorInput.value = '#' + val;
+          textInput.value = val.toUpperCase();
           onRender();
         }
       });
@@ -139,16 +131,58 @@ export function setupControls(onRender: RenderCallback): void {
     }
   });
 
+  // Alpha number inputs (0-100) with drag support
+  const alphaInputs = ['cyanAlpha', 'magentaAlpha', 'yellowAlpha', 'blackAlpha'];
+  alphaInputs.forEach(id => {
+    const input = $(id) as HTMLInputElement | null;
+    const container = input?.parentElement;
+    if (!input || !container) return;
+
+    // Regular input change
+    input.addEventListener('input', onRender);
+    input.addEventListener('change', onRender);
+
+    // Drag functionality on container
+    let isDragging = false;
+    let startX = 0;
+    let startValue = 0;
+
+    container.addEventListener('mousedown', function(e: MouseEvent) {
+      // Don't start drag if clicking directly on input
+      if (e.target === input) return;
+      
+      isDragging = true;
+      startX = e.clientX;
+      startValue = parseInt(input.value) || 0;
+      document.body.style.cursor = 'ew-resize';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e: MouseEvent) {
+      if (!isDragging) return;
+      
+      const delta = e.clientX - startX;
+      const sensitivity = 0.5; // 2 pixels per 1% change
+      let newValue = startValue + Math.round(delta * sensitivity);
+      newValue = Math.max(0, Math.min(100, newValue));
+      input.value = String(newValue);
+      onRender();
+    });
+
+    document.addEventListener('mouseup', function() {
+      if (isDragging) {
+        isDragging = false;
+        document.body.style.cursor = '';
+      }
+    });
+  });
+
   // Blend mode
   const blendMode = $('blendMode');
   if (blendMode) {
     blendMode.addEventListener('change', onRender);
   }
 
-  // Section toggles
-  document.querySelectorAll('.section-header').forEach(header => {
-    header.addEventListener('click', () => toggleSection(header as HTMLElement));
-  });
 }
 
 // Reset all controls to defaults
@@ -184,23 +218,23 @@ export function resetDefaults(onRender: RenderCallback): void {
   setInput('blackAngle', DEFAULTS.blackAngle);
   
   setInput('cyanInk', DEFAULTS.cyanInk);
-  setInput('cyanInk-text', DEFAULTS.cyanInk);
-  setInput('cyanAlpha', DEFAULTS.cyanAlpha);
+  setInput('cyanInk-text', DEFAULTS.cyanInk.slice(1));
+  setInput('cyanAlpha', Math.round(DEFAULTS.cyanAlpha * 100));
   
   setInput('magentaInk', DEFAULTS.magentaInk);
-  setInput('magentaInk-text', DEFAULTS.magentaInk);
-  setInput('magentaAlpha', DEFAULTS.magentaAlpha);
+  setInput('magentaInk-text', DEFAULTS.magentaInk.slice(1));
+  setInput('magentaAlpha', Math.round(DEFAULTS.magentaAlpha * 100));
   
   setInput('yellowInk', DEFAULTS.yellowInk);
-  setInput('yellowInk-text', DEFAULTS.yellowInk);
-  setInput('yellowAlpha', DEFAULTS.yellowAlpha);
+  setInput('yellowInk-text', DEFAULTS.yellowInk.slice(1));
+  setInput('yellowAlpha', Math.round(DEFAULTS.yellowAlpha * 100));
   
   setInput('blackInk', DEFAULTS.blackInk);
-  setInput('blackInk-text', DEFAULTS.blackInk);
-  setInput('blackAlpha', DEFAULTS.blackAlpha);
+  setInput('blackInk-text', DEFAULTS.blackInk.slice(1));
+  setInput('blackAlpha', Math.round(DEFAULTS.blackAlpha * 100));
   
   setInput('paperColor', DEFAULTS.paperColor);
-  setInput('paperColor-text', DEFAULTS.paperColor);
+  setInput('paperColor-text', DEFAULTS.paperColor.slice(1).toUpperCase());
   
   setInput('showCyan', DEFAULTS.showCyan);
   setInput('showMagenta', DEFAULTS.showMagenta);
@@ -223,10 +257,6 @@ export function resetDefaults(onRender: RenderCallback): void {
   updateValueDisplay('magentaAngle', DEFAULTS.magentaAngle, '°');
   updateValueDisplay('yellowAngle', DEFAULTS.yellowAngle, '°');
   updateValueDisplay('blackAngle', DEFAULTS.blackAngle, '°');
-  updateValueDisplay('cyanAlpha', DEFAULTS.cyanAlpha.toFixed(2));
-  updateValueDisplay('magentaAlpha', DEFAULTS.magentaAlpha.toFixed(2));
-  updateValueDisplay('yellowAlpha', DEFAULTS.yellowAlpha.toFixed(2));
-  updateValueDisplay('blackAlpha', DEFAULTS.blackAlpha.toFixed(2));
 
   onRender();
 }
