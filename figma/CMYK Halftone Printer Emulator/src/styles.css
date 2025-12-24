@@ -70,7 +70,7 @@ body {
 .section-header {
   display: flex;
   align-items: center;
-  padding: 14px 12px 8px;
+  padding: 16px 12px 8px;
   user-select: none;
   background: var(--bg-primary);
 }
