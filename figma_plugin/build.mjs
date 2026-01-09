@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 const isWatch = process.argv.includes('--watch');
 
 // Path to shared shaders (relative to this file)
-const sharedPath = path.resolve(__dirname, '../../shared');
+const sharedPath = path.resolve(__dirname, '../shared');
 
 // Plugin to load .glsl files as raw strings
 const glslPlugin = {
