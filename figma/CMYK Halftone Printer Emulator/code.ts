@@ -1,14 +1,10 @@
 
 figma.showUI(__html__, { 
-  width: 900, 
-  height: 600,
+  width: 1200, 
+  height: 800,
   themeColors: true,
   visible: true
 });
-
-// Minimum window size constraints
-const MIN_WIDTH = 600;
-const MIN_HEIGHT = 400;
 
 interface PluginMessage {
   type: string;
@@ -198,9 +194,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
 
     case 'resize':
       if (msg.width && msg.height) {
-        const newWidth = Math.max(msg.width, MIN_WIDTH);
-        const newHeight = Math.max(msg.height, MIN_HEIGHT);
-        figma.ui.resize(newWidth, newHeight);
+        figma.ui.resize(msg.width, msg.height);
       }
       break;
   }

@@ -7,7 +7,10 @@
   "enableProposedApi": false,
   "documentAccess": "dynamic-page",
   "editorType": [
-    "figma"
+    "figma",
+    "slides",
+    "figjam",
+    "buzz"
   ],
   "ui": "ui.html",
   "networkAccess": {

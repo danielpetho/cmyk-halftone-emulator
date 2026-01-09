@@ -674,3 +674,32 @@ select:focus {
 .sidebar-content::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+/* Resize handle */
+.resize-handle {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  z-index: 9999;
+  transition: color 0.15s ease;
+  padding: 4px;
+}
+
+.resize-handle:hover {
+  color: var(--text-secondary);
+}
+
+.resize-handle:active {
+  color: var(--text-primary);
+}
+
+.resize-handle svg {
+  pointer-events: none;
+}

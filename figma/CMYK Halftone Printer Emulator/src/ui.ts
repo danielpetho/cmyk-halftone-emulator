@@ -14,7 +14,18 @@ const zoomOutBtn = document.getElementById('zoom-out') as HTMLButtonElement;
 const zoomFitBtn = document.getElementById('zoom-fit') as HTMLButtonElement;
 const zoomValue = document.getElementById('zoom-value') as HTMLElement;
 
+const resizeHandle = document.getElementById('resize-handle') as HTMLElement;
+
 const renderer = new HalftoneRenderer(canvas);
+
+// Resize state
+let isResizing = false;
+let startWidth = 1200;
+let startHeight = 800;
+let startMouseX = 0;
+let startMouseY = 0;
+const MIN_WIDTH = 600;
+const MIN_HEIGHT = 400;
 
 // Zoom/Pan state
 let zoom = 1;
@@ -216,6 +227,49 @@ function setupResizeObserver(): void {
   resizeObserver.observe(mainArea);
 }
 
+function setupWindowResize(): void {
+  // Initialize current size
+  startWidth = window.innerWidth;
+  startHeight = window.innerHeight;
+  
+  resizeHandle.addEventListener('mousedown', function(e: MouseEvent) {
+    e.preventDefault();
+    isResizing = true;
+    startMouseX = e.screenX;
+    startMouseY = e.screenY;
+    startWidth = window.innerWidth;
+    startHeight = window.innerHeight;
+    document.body.style.cursor = 'nwse-resize';
+    document.body.style.userSelect = 'none';
+  });
+  
+  document.addEventListener('mousemove', function(e: MouseEvent) {
+    if (!isResizing) return;
+    
+    const deltaX = e.screenX - startMouseX;
+    const deltaY = e.screenY - startMouseY;
+    
+    const newWidth = Math.max(MIN_WIDTH, startWidth + deltaX);
+    const newHeight = Math.max(MIN_HEIGHT, startHeight + deltaY);
+    
+    parent.postMessage({
+      pluginMessage: {
+        type: 'resize',
+        width: Math.round(newWidth),
+        height: Math.round(newHeight)
+      }
+    }, '*');
+  });
+  
+  document.addEventListener('mouseup', function() {
+    if (isResizing) {
+      isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+}
+
 function init(): void {
   if (!renderer.init()) {
     showMessage('WebGL not supported', 'This plugin requires WebGL. Please try a different browser.');
@@ -225,6 +279,7 @@ function init(): void {
   setupControls(render);
   setupZoomPanHandlers();
   setupResizeObserver();
+  setupWindowResize();
 
   (window as any).applyHalftone = applyHalftone;
   (window as any).cancel = cancel;
