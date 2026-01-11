@@ -247,137 +247,68 @@ input[type="range"]::-moz-range-thumb:hover {
   border-color: #18a0fb;
 }
 
-/* Color picker */
-.color-row {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  padding: 4px 0;
-}
-
-.color-picker-container {
-  display: flex;
-  align-items: center;
-  background: var(--bg-tertiary);
-  border-radius: 4px;
-  overflow: hidden;
-  height: 24px;
-  padding: 2px 4px;
-  gap: 4px;
-  flex: 1;
-}
-
-.color-swatch {
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.color-swatch::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-.color-swatch::-webkit-color-swatch {
-  border: none;
-  border-radius: 3px;
-}
-
-.color-input {
-  flex: 1;
-  padding: 4px 6px;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  font-size: 11px;
-  font-family: inherit;
-  text-transform: uppercase;
-  height: 24px;
-  min-width: 0;
-}
-
-.color-input:focus {
-  outline: none;
-}
-
-/* Checkbox  */
-.checkbox {
-  width: 14px;
-  height: 14px;
-  /* accent-color: #18a0fb; */
-  cursor: pointer;
-}
-
-/* Ink groups - two row layout */
-.ink-group {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--bg-tertiary);
-}
-
-.ink-group:last-child {
-  border-bottom: none;
-}
-
-.ink-header {
+/* Figma-style color picker */
+.ink-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
+  padding: 6px 0;
 }
 
-.ink-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+.ink-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  width: 60px;
+  min-width: 60px;
   flex-shrink: 0;
 }
 
-.ink-name {
-  font-weight: 500;
-  font-size: 11px;
-  color: var(--text-primary);
-}
-
-.ink-controls {
+.figma-color-picker {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0;
+  margin-left: auto;
 }
 
-.color-picker-left {
+.figma-color-picker > .visibility-toggle,
+.figma-color-picker > .visibility-icon {
+  margin-left: 4px;
+}
+
+.color-hex-group {
   display: flex;
   align-items: center;
-  background: #f5f5f5;
+  background: var(--bg-tertiary);
   border-radius: 4px 0 0 4px;
-  padding: 2px 12px 2px 6px;
-  gap: 6px;
   height: 24px;
+  padding: 0 6px 0 4px;
+  gap: 4px;
+  width: 90px;
+  flex-shrink: 0;
 }
 
-.color-swatch-small {
+.color-swatch-figma {
   width: 16px;
   height: 16px;
   padding: 0;
-  border: none;
+  border: 1px solid var(--border);
   border-radius: 2px;
   cursor: pointer;
   flex-shrink: 0;
+  background: transparent;
 }
 
-.color-swatch-small::-webkit-color-swatch-wrapper {
+.color-swatch-figma::-webkit-color-swatch-wrapper {
   padding: 0;
 }
 
-.color-swatch-small::-webkit-color-swatch {
+.color-swatch-figma::-webkit-color-swatch {
   border: none;
   border-radius: 2px;
 }
 
-.color-input-small {
-  width: 52px;
+.hex-input {
+  flex: 1;
   padding: 0;
   background: transparent;
   border: none;
@@ -385,72 +316,141 @@ input[type="range"]::-moz-range-thumb:hover {
   font-size: 11px;
   font-family: inherit;
   text-transform: uppercase;
+  min-width: 36px;
 }
 
-.color-input-small:focus {
+.hex-input:focus {
   outline: none;
 }
 
-.alpha-container {
+.alpha-group {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f5f5f5;
+  background: var(--bg-tertiary);
+  border-left: 1px solid var(--bg-primary);
   border-radius: 0 4px 4px 0;
-  padding: 2px 6px;
   height: 24px;
-  min-width: 54px;
+  padding: 0 5px;
+  width: 54px;
+  flex-shrink: 0;
   cursor: ew-resize;
+  user-select: none;
+}
+
+.alpha-group:hover {
+  background: var(--border);
 }
 
 .alpha-input {
-  width: 24px;
-  height: 20px;
+  width: 26px;
   padding: 0;
   background: transparent;
   border: none;
   color: var(--text-primary);
   font-size: 11px;
+  font-family: inherit;
   text-align: left;
   -moz-appearance: textfield;
-  cursor: ew-resize;
+  appearance: textfield;
 }
 
 .alpha-input::-webkit-outer-spin-button,
 .alpha-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 
 .alpha-input:focus {
   outline: none;
-  cursor: text;
 }
 
-.alpha-suffix {
+.alpha-percent {
   font-size: 11px;
   color: var(--text-muted);
-  pointer-events: none;
+  cursor: ew-resize;
+  user-select: none;
 }
 
-.ink-controls .checkbox {
-  margin-left: auto;
+.paper-alpha {
+  cursor: default;
 }
 
-/* Paper color - full width picker */
-.paper-controls {
+.paper-alpha .alpha-input {
+  color: var(--text-muted);
+}
+
+.paper-alpha:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Visibility toggle button */
+.visibility-toggle {
   display: flex;
   align-items: center;
-}
-
-.color-picker-full {
-  display: flex;
-  align-items: center;
-  background: #f5f5f5;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
   border-radius: 4px;
-  padding: 2px 12px 2px 6px;
-  gap: 6px;
-  height: 24px;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: color 0.1s ease, background 0.1s ease;
+}
+
+.visibility-toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.visibility-toggle.active {
+  color: var(--text-secondary);
+}
+
+.visibility-toggle.active:hover {
+  color: var(--text-primary);
+}
+
+/* Show/hide eye icons based on state */
+.visibility-toggle .eye-open {
+  display: none;
+}
+
+.visibility-toggle .eye-closed {
+  display: block;
+}
+
+.visibility-toggle.active .eye-open {
+  display: block;
+}
+
+.visibility-toggle.active .eye-closed {
+  display: none;
+}
+
+/* Visibility icon for paper (non-interactive) */
+.visibility-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Paper picker */
+.paper-picker {
+  flex: 1;
+}
+
+/* Reset button container */
+.reset-container {
+  padding: 12px 12px 8px;
 }
 
 /* Select dropdown - Figma style */

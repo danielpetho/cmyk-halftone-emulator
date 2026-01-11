@@ -9,15 +9,27 @@ function $(id: string): HTMLElement | null {
 
 // Get input value
 function getInputValue(id: string, type: 'number' | 'boolean' | 'string' = 'number'): number | boolean | string {
-  const el = $(id) as HTMLInputElement | null;
+  const el = $(id) as HTMLElement | null;
   if (!el) return type === 'boolean' ? false : type === 'number' ? 0 : '';
   
   if (type === 'boolean') {
-    return el.checked;
+    // Check for visibility toggle button (has active class) or checkbox (has checked property)
+    if (el.classList.contains('visibility-toggle')) {
+      return el.classList.contains('active');
+    }
+    return (el as HTMLInputElement).checked;
   } else if (type === 'number') {
-    return parseFloat(el.value);
+    return parseFloat((el as HTMLInputElement).value);
   }
-  return el.value;
+  return (el as HTMLInputElement).value;
+}
+
+// Get alpha value (convert 0-100 to 0-1)
+function getAlphaValue(id: string): number {
+  const el = $(id) as HTMLInputElement | null;
+  if (!el) return 1;
+  const val = parseInt(el.value, 10);
+  return isNaN(val) ? 1 : Math.max(0, Math.min(100, val)) / 100;
 }
 
 // Get current settings from UI
@@ -40,13 +52,13 @@ export function getSettings(): HalftoneSettings {
     yellowAngle: getInputValue('yellowAngle') as number,
     blackAngle: getInputValue('blackAngle') as number,
     cyanInk: getInputValue('cyanInk', 'string') as string,
-    cyanAlpha: getInputValue('cyanAlpha') as number,
+    cyanAlpha: getAlphaValue('cyanAlpha'),
     magentaInk: getInputValue('magentaInk', 'string') as string,
-    magentaAlpha: getInputValue('magentaAlpha') as number,
+    magentaAlpha: getAlphaValue('magentaAlpha'),
     yellowInk: getInputValue('yellowInk', 'string') as string,
-    yellowAlpha: getInputValue('yellowAlpha') as number,
+    yellowAlpha: getAlphaValue('yellowAlpha'),
     blackInk: getInputValue('blackInk', 'string') as string,
-    blackAlpha: getInputValue('blackAlpha') as number,
+    blackAlpha: getAlphaValue('blackAlpha'),
     paperColor: getInputValue('paperColor', 'string') as string,
     showCyan: getInputValue('showCyan', 'boolean') as boolean,
     showMagenta: getInputValue('showMagenta', 'boolean') as boolean,
@@ -61,6 +73,58 @@ function updateValueDisplay(id: string, value: string | number, suffix = ''): vo
   if (el) {
     el.textContent = value + suffix;
   }
+}
+
+// Setup alpha drag functionality
+function setupAlphaDrag(onRender: RenderCallback): void {
+  const alphaGroups = document.querySelectorAll('.alpha-group[data-alpha-for]');
+  
+  alphaGroups.forEach(group => {
+    const alphaFor = group.getAttribute('data-alpha-for');
+    if (!alphaFor) return;
+    
+    const input = $(alphaFor) as HTMLInputElement | null;
+    if (!input) return;
+    
+    let isDragging = false;
+    let startX = 0;
+    let startValue = 0;
+    
+    const onMouseDown = (e: MouseEvent) => {
+      // Don't start drag if clicking on the input itself
+      if (e.target === input) return;
+      
+      isDragging = true;
+      startX = e.clientX;
+      startValue = parseInt(input.value, 10) || 0;
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    };
+    
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      
+      const deltaX = e.clientX - startX;
+      const sensitivity = 0.5; // pixels per 1%
+      let newValue = startValue + Math.round(deltaX * sensitivity);
+      newValue = Math.max(0, Math.min(100, newValue));
+      input.value = String(newValue);
+      onRender();
+    };
+    
+    const onMouseUp = () => {
+      if (isDragging) {
+        isDragging = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+    
+    group.addEventListener('mousedown', onMouseDown as EventListener);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
 }
 
 // Setup all control event listeners
@@ -81,11 +145,7 @@ export function setupControls(onRender: RenderCallback): void {
     { id: 'cyanAngle', suffix: '°' },
     { id: 'magentaAngle', suffix: '°' },
     { id: 'yellowAngle', suffix: '°' },
-    { id: 'blackAngle', suffix: '°' },
-    { id: 'cyanAlpha', decimals: 2 },
-    { id: 'magentaAlpha', decimals: 2 },
-    { id: 'yellowAlpha', decimals: 2 },
-    { id: 'blackAlpha', decimals: 2 }
+    { id: 'blackAngle', suffix: '°' }
   ];
 
   rangeInputs.forEach(({ id, suffix = '', decimals }) => {
@@ -100,6 +160,30 @@ export function setupControls(onRender: RenderCallback): void {
       });
     }
   });
+
+  // Alpha inputs (text-based, 0-100)
+  const alphaInputs = ['cyanAlpha', 'magentaAlpha', 'yellowAlpha', 'blackAlpha'];
+  alphaInputs.forEach(id => {
+    const input = $(id) as HTMLInputElement | null;
+    if (input) {
+      input.addEventListener('change', () => {
+        let val = parseInt(input.value, 10);
+        if (isNaN(val)) val = 100;
+        val = Math.max(0, Math.min(100, val));
+        input.value = String(val);
+        onRender();
+      });
+      
+      input.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter') {
+          input.blur();
+        }
+      });
+    }
+  });
+
+  // Setup alpha drag on alpha-group elements
+  setupAlphaDrag(onRender);
 
   // Color inputs (text displays without #, but color input needs #)
   const colorInputs = ['cyanInk', 'magentaInk', 'yellowInk', 'blackInk', 'paperColor'];
@@ -126,12 +210,15 @@ export function setupControls(onRender: RenderCallback): void {
     }
   });
 
-  // Checkboxes
-  const checkboxes = ['showCyan', 'showMagenta', 'showYellow', 'showBlack'];
-  checkboxes.forEach(id => {
-    const checkbox = $(id) as HTMLInputElement | null;
-    if (checkbox) {
-      checkbox.addEventListener('change', onRender);
+  // Visibility toggles (eye icon buttons)
+  const visibilityToggles = ['showCyan', 'showMagenta', 'showYellow', 'showBlack'];
+  visibilityToggles.forEach(id => {
+    const toggle = $(id) as HTMLButtonElement | null;
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('active');
+        onRender();
+      });
     }
   });
 
@@ -177,27 +264,38 @@ export function resetDefaults(onRender: RenderCallback): void {
   
   setInput('cyanInk', DEFAULTS.cyanInk);
   setInput('cyanInk-text', DEFAULTS.cyanInk.slice(1));
-  setInput('cyanAlpha', DEFAULTS.cyanAlpha);
+  setInput('cyanAlpha', Math.round(DEFAULTS.cyanAlpha * 100));
   
   setInput('magentaInk', DEFAULTS.magentaInk);
   setInput('magentaInk-text', DEFAULTS.magentaInk.slice(1));
-  setInput('magentaAlpha', DEFAULTS.magentaAlpha);
+  setInput('magentaAlpha', Math.round(DEFAULTS.magentaAlpha * 100));
   
   setInput('yellowInk', DEFAULTS.yellowInk);
   setInput('yellowInk-text', DEFAULTS.yellowInk.slice(1));
-  setInput('yellowAlpha', DEFAULTS.yellowAlpha);
+  setInput('yellowAlpha', Math.round(DEFAULTS.yellowAlpha * 100));
   
   setInput('blackInk', DEFAULTS.blackInk);
   setInput('blackInk-text', DEFAULTS.blackInk.slice(1));
-  setInput('blackAlpha', DEFAULTS.blackAlpha);
+  setInput('blackAlpha', Math.round(DEFAULTS.blackAlpha * 100));
   
   setInput('paperColor', DEFAULTS.paperColor);
   setInput('paperColor-text', DEFAULTS.paperColor.slice(1).toUpperCase());
   
-  setInput('showCyan', DEFAULTS.showCyan);
-  setInput('showMagenta', DEFAULTS.showMagenta);
-  setInput('showYellow', DEFAULTS.showYellow);
-  setInput('showBlack', DEFAULTS.showBlack);
+  // Set visibility toggles
+  const setVisibility = (id: string, visible: boolean) => {
+    const el = $(id);
+    if (el) {
+      if (visible) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    }
+  };
+  setVisibility('showCyan', DEFAULTS.showCyan);
+  setVisibility('showMagenta', DEFAULTS.showMagenta);
+  setVisibility('showYellow', DEFAULTS.showYellow);
+  setVisibility('showBlack', DEFAULTS.showBlack);
 
   // Update displays
   updateValueDisplay('frequency', DEFAULTS.frequency);
@@ -215,10 +313,6 @@ export function resetDefaults(onRender: RenderCallback): void {
   updateValueDisplay('magentaAngle', DEFAULTS.magentaAngle, '°');
   updateValueDisplay('yellowAngle', DEFAULTS.yellowAngle, '°');
   updateValueDisplay('blackAngle', DEFAULTS.blackAngle, '°');
-  updateValueDisplay('cyanAlpha', DEFAULTS.cyanAlpha.toFixed(2));
-  updateValueDisplay('magentaAlpha', DEFAULTS.magentaAlpha.toFixed(2));
-  updateValueDisplay('yellowAlpha', DEFAULTS.yellowAlpha.toFixed(2));
-  updateValueDisplay('blackAlpha', DEFAULTS.blackAlpha.toFixed(2));
 
   onRender();
 }

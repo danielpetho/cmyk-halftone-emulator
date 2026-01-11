@@ -142,104 +142,130 @@
           </div>
           <div class="section-content">
             <!-- Cyan -->
-            <div class="ink-group">
-              <div class="ink-group-header">
-                <div class="ink-dot" style="background: #00FFFF"></div>
-                <span class="ink-name">Cyan</span>
-                <input type="checkbox" class="checkbox" id="showCyan" checked>
-              </div>
-              <div class="color-row">
-                <div class="color-picker-container">
-                  <input type="color" id="cyanInk" value="#00FFFF" class="color-swatch">
-                  <input type="text" class="color-input" id="cyanInk-text" value="00FFFF">
+            <div class="ink-row">
+              <span class="ink-label">Cyan</span>
+              <div class="figma-color-picker">
+                <div class="color-hex-group">
+                  <input type="color" id="cyanInk" value="#00FFFF" class="color-swatch-figma">
+                  <input type="text" class="hex-input" id="cyanInk-text" value="00FFFF" maxlength="6">
                 </div>
-              </div>
-              <div class="control-row">
-                <span class="control-label">Alpha</span>
-                <input type="range" id="cyanAlpha" min="0" max="1" value="0.95" step="0.01">
-                <span class="control-value" id="cyanAlpha-val">0.95</span>
+                <div class="alpha-group" data-alpha-for="cyanAlpha">
+                  <input type="text" class="alpha-input" id="cyanAlpha" value="95" maxlength="3">
+                  <span class="alpha-percent">%</span>
+                </div>
+                <button class="visibility-toggle active" id="showCyan" type="button" title="Toggle visibility">
+                  <svg class="eye-open" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg class="eye-closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                </button>
               </div>
             </div>
             
             <!-- Magenta -->
-            <div class="ink-group">
-              <div class="ink-group-header">
-                <div class="ink-dot" style="background: #FF00FF"></div>
-                <span class="ink-name">Magenta</span>
-                <input type="checkbox" class="checkbox" id="showMagenta" checked>
-              </div>
-              <div class="color-row">
-                <div class="color-picker-container">
-                  <input type="color" id="magentaInk" value="#FF00FF" class="color-swatch">
-                  <input type="text" class="color-input" id="magentaInk-text" value="FF00FF">
+            <div class="ink-row">
+              <span class="ink-label">Magenta</span>
+              <div class="figma-color-picker">
+                <div class="color-hex-group">
+                  <input type="color" id="magentaInk" value="#FF00FF" class="color-swatch-figma">
+                  <input type="text" class="hex-input" id="magentaInk-text" value="FF00FF" maxlength="6">
                 </div>
-              </div>
-              <div class="control-row">
-                <span class="control-label">Alpha</span>
-                <input type="range" id="magentaAlpha" min="0" max="1" value="0.95" step="0.01">
-                <span class="control-value" id="magentaAlpha-val">0.95</span>
+                <div class="alpha-group" data-alpha-for="magentaAlpha">
+                  <input type="text" class="alpha-input" id="magentaAlpha" value="95" maxlength="3">
+                  <span class="alpha-percent">%</span>
+                </div>
+                <button class="visibility-toggle active" id="showMagenta" type="button" title="Toggle visibility">
+                  <svg class="eye-open" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg class="eye-closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                </button>
               </div>
             </div>
             
             <!-- Yellow -->
-            <div class="ink-group">
-              <div class="ink-group-header">
-                <div class="ink-dot" style="background: #FFFF00"></div>
-                <span class="ink-name">Yellow</span>
-                <input type="checkbox" class="checkbox" id="showYellow" checked>
-              </div>
-              <div class="color-row">
-                <div class="color-picker-container">
-                  <input type="color" id="yellowInk" value="#FFFF00" class="color-swatch">
-                  <input type="text" class="color-input" id="yellowInk-text" value="FFFF00">
+            <div class="ink-row">
+              <span class="ink-label">Yellow</span>
+              <div class="figma-color-picker">
+                <div class="color-hex-group">
+                  <input type="color" id="yellowInk" value="#FFFF00" class="color-swatch-figma">
+                  <input type="text" class="hex-input" id="yellowInk-text" value="FFFF00" maxlength="6">
                 </div>
-              </div>
-              <div class="control-row">
-                <span class="control-label">Alpha</span>
-                <input type="range" id="yellowAlpha" min="0" max="1" value="0.95" step="0.01">
-                <span class="control-value" id="yellowAlpha-val">0.95</span>
+                <div class="alpha-group" data-alpha-for="yellowAlpha">
+                  <input type="text" class="alpha-input" id="yellowAlpha" value="95" maxlength="3">
+                  <span class="alpha-percent">%</span>
+                </div>
+                <button class="visibility-toggle active" id="showYellow" type="button" title="Toggle visibility">
+                  <svg class="eye-open" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg class="eye-closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                </button>
               </div>
             </div>
             
             <!-- Black -->
-            <div class="ink-group">
-              <div class="ink-group-header">
-                <div class="ink-dot" style="background: #000000; border: 1px solid #666"></div>
-                <span class="ink-name">Black</span>
-                <input type="checkbox" class="checkbox" id="showBlack" checked>
-              </div>
-              <div class="color-row">
-                <div class="color-picker-container">
-                  <input type="color" id="blackInk" value="#000000" class="color-swatch">
-                  <input type="text" class="color-input" id="blackInk-text" value="000000">
+            <div class="ink-row">
+              <span class="ink-label">Black</span>
+              <div class="figma-color-picker">
+                <div class="color-hex-group">
+                  <input type="color" id="blackInk" value="#000000" class="color-swatch-figma">
+                  <input type="text" class="hex-input" id="blackInk-text" value="000000" maxlength="6">
                 </div>
-              </div>
-              <div class="control-row">
-                <span class="control-label">Alpha</span>
-                <input type="range" id="blackAlpha" min="0" max="1" value="0.95" step="0.01">
-                <span class="control-value" id="blackAlpha-val">0.95</span>
+                <div class="alpha-group" data-alpha-for="blackAlpha">
+                  <input type="text" class="alpha-input" id="blackAlpha" value="95" maxlength="3">
+                  <span class="alpha-percent">%</span>
+                </div>
+                <button class="visibility-toggle active" id="showBlack" type="button" title="Toggle visibility">
+                  <svg class="eye-open" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg class="eye-closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                </button>
               </div>
             </div>
-          </div>
-        </div>
-        
-        <!-- Paper -->
-        <div class="section">
-          <div class="section-header">
-            <span class="section-title">Paper / Background</span>
-          </div>
-          <div class="section-content">
-            <div class="color-row">
-              <div class="color-picker-container">
-                <input type="color" id="paperColor" value="#f8f4e8" class="color-swatch">
-                <input type="text" class="color-input" id="paperColor-text" value="F8F4E8">
+            
+            <!-- Background -->
+            <div class="ink-row">
+              <span class="ink-label">Background</span>
+              <div class="figma-color-picker">
+                <div class="color-hex-group">
+                  <input type="color" id="paperColor" value="#f8f4e8" class="color-swatch-figma">
+                  <input type="text" class="hex-input" id="paperColor-text" value="F8F4E8" maxlength="6">
+                </div>
+                <div class="alpha-group paper-alpha">
+                  <input type="text" class="alpha-input" id="paperAlpha" value="100" maxlength="3" disabled>
+                  <span class="alpha-percent">%</span>
+                </div>
+                <span class="visibility-icon" title="Always visible">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </span>
               </div>
             </div>
           </div>
         </div>
         
         <!-- Reset -->
-        <div style="padding: 8px 0;">
+        <div class="reset-container">
           <button class="btn btn-secondary" style="width: 100%;" onclick="resetDefaults()">
             Reset to Defaults
           </button>
