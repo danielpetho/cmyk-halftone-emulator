@@ -1,7 +1,7 @@
 {
   "name": "cmyk-halftone-printer-emulator",
   "version": "1.0.0",
-  "description": "CMYK Halftone Printer Emulator Figma Plugin",
+  "description": "CMYK Halftone Figma Plugin",
   "main": "code.js",
   "type": "module",
   "scripts": {
