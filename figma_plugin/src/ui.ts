@@ -270,6 +270,17 @@ function setupWindowResize(): void {
   });
 }
 
+// About modal
+const aboutModal = document.getElementById('about-modal') as HTMLElement;
+
+function showAbout(): void {
+  aboutModal.style.display = 'flex';
+}
+
+function hideAbout(): void {
+  aboutModal.style.display = 'none';
+}
+
 function init(): void {
   if (!renderer.init()) {
     showMessage('WebGL not supported', 'This plugin requires WebGL. Please try a different browser.');
@@ -280,10 +291,19 @@ function init(): void {
   setupZoomPanHandlers();
   setupResizeObserver();
   setupWindowResize();
+  
+  // Close modal when clicking overlay
+  aboutModal.addEventListener('click', function(e: MouseEvent) {
+    if (e.target === aboutModal) {
+      hideAbout();
+    }
+  });
 
   (window as any).applyHalftone = applyHalftone;
   (window as any).cancel = cancel;
   (window as any).resetDefaults = function() { resetDefaults(render); };
+  (window as any).showAbout = showAbout;
+  (window as any).hideAbout = hideAbout;
 
   window.onmessage = function(event: MessageEvent) {
     const msg = event.data.pluginMessage;

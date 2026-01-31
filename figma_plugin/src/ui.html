@@ -273,6 +273,13 @@
       </div>
       
       <div class="sidebar-footer">
+        <button class="btn-icon" id="about-btn" title="About" onclick="showAbout()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <path d="M12 8h.01"/>
+          </svg>
+        </button>
         <button class="btn btn-secondary" onclick="cancel()">Cancel</button>
         <button class="btn btn-primary" id="apply-btn" onclick="applyHalftone()">Apply</button>
       </div>
@@ -314,6 +321,52 @@
         <circle cx="6" cy="6" r="1.5"/>
         <circle cx="10" cy="2" r="1.5"/>
       </svg>
+    </div>
+    
+    <!-- About Modal -->
+    <div class="modal-overlay" id="about-modal" style="display: none;">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>CMYK Halftone Emulator</h2>
+          <button class="modal-close" onclick="hideAbout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-content">
+          <p class="modal-version">Version 1.0.0</p>
+          
+          <div class="modal-section">
+            <h3>What is this?</h3>
+            <p>Emulate the look of <a href="https://en.wikipedia.org/wiki/Halftone" target="_blank">CMYK halftone printing</a> with customizable inks, screen angles.</p>
+          </div>
+          
+          <div class="modal-section">
+            <h3>How to use</h3>
+            <ol>
+              <li>Select an image or shape with an image fill</li>
+              <li>Adjust the halftone settings to your liking</li>
+              <li>Click "Apply" to replace the original or create a new image</li>
+            </ol>
+          </div>
+          
+          <div class="modal-section">
+            <h3>Links</h3>
+            <div class="modal-links">
+              <a href="https://github.com/danielpetho/cmyk-halftone-emulator/issues" target="_blank">Report a bug</a>
+              <a href="https://github.com/danielpetho/cmyk-halftone-emulator" target="_blank">GitHub</a>
+              <a href="https://twitter.com/nonzeroexticode" target="_blank">Twitter / X</a>
+            </div>
+          </div>
+          
+          <div class="modal-section">
+            <h3>Created by</h3>
+            <p>Made with ♥ by <a href="https://danielpetho.com" target="_blank">Daniel Petho</a></p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </body>
