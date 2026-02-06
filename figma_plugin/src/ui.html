@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CMYK Halftone</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar with controls -->
+    <div class="sidebar">
+      <div class="sidebar-content" id="controls">
+        <!-- Blend Mode -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Blend Mode <span class="tooltip" data-tip="Subtractive: Traditional CMYK printing (dark inks on light paper). Additive: For light/neon inks on dark backgrounds. Normal: Most flexible, works with any color combination.">ⓘ</span></span>
+          </div>
+          <div class="section-content">
+            <select id="blendMode">
+              <option value="0">Subtractive (CMYK)</option>
+              <option value="1">Additive</option>
+              <option value="2">Normal (Alpha)</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Halftone Settings -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Halftone Settings</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Frequency <span class="tooltip" data-tip="Controls the density of halftone dots. Higher values = more dots.">ⓘ</span></span>
+              <input type="range" id="frequency" min="5" max="400" value="85" step="1">
+              <span class="control-value" id="frequency-val">85</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Dot Size <span class="tooltip" data-tip="Maximum size of halftone dots. Larger values = bigger dots.">ⓘ</span></span>
+              <input type="range" id="dotSize" min="0.1" max="2" value="1" step="0.01">
+              <span class="control-value" id="dotSize-val">1.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Roughness <span class="tooltip" data-tip="Adds irregular edges to dots for a more organic, vintage printing look.">ⓘ</span></span>
+              <input type="range" id="roughness" min="0" max="5" value="2" step="0.1">
+              <span class="control-value" id="roughness-val">2.0</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Fuzz <span class="tooltip" data-tip="Controls the softness of dot edges. Higher values create smoother transitions.">ⓘ</span></span>
+              <input type="range" id="fuzz" min="0" max="0.5" value="0.1" step="0.01">
+              <span class="control-value" id="fuzz-val">0.10</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Randomness <span class="tooltip" data-tip="Randomly shifts dot positions to break up regular grid patterns.">ⓘ</span></span>
+              <input type="range" id="randomness" min="0" max="1" value="0.2" step="0.01">
+              <span class="control-value" id="randomness-val">0.20</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Threshold <span class="tooltip" data-tip="Eliminates small dots below this value to remove artifacts. 0.05-0.15 recommended.">ⓘ</span></span>
+              <input type="range" id="threshold" min="0" max="0.5" value="0.05" step="0.01">
+              <span class="control-value" id="threshold-val">0.05</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Image Adjustments -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Image (Pre-filtering)</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Contrast <span class="tooltip" data-tip="Adjusts the tonal range of the image before halftone processing.">ⓘ</span></span>
+              <input type="range" id="contrast" min="0.5" max="2" value="1" step="0.01">
+              <span class="control-value" id="contrast-val">1.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Lightness <span class="tooltip" data-tip="Adjusts the overall brightness before halftone processing.">ⓘ</span></span>
+              <input type="range" id="lightness" min="-0.5" max="0.5" value="0" step="0.01">
+              <span class="control-value" id="lightness-val">0.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Blur <span class="tooltip" data-tip="Softens edges before halftone to reduce harsh cutoffs.">ⓘ</span></span>
+              <input type="range" id="blur" min="0" max="5" value="1" step="0.1">
+              <span class="control-value" id="blur-val">1.0</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Noise -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Noise & Texture</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Paper Noise <span class="tooltip" data-tip="Adds texture variation to the paper surface for a more realistic look.">ⓘ</span></span>
+              <input type="range" id="paperNoise" min="0" max="1" value="0" step="0.01">
+              <span class="control-value" id="paperNoise-val">0.00</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Ink Noise <span class="tooltip" data-tip="Simulates ink density variation for authentic printing imperfections.">ⓘ</span></span>
+              <input type="range" id="inkNoise" min="0" max="1" value="0.6" step="0.01">
+              <span class="control-value" id="inkNoise-val">0.60</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Screen Angles -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Screen Angles</span>
+          </div>
+          <div class="section-content">
+            <div class="control-row">
+              <span class="control-label">Cyan</span>
+              <input type="range" id="cyanAngle" min="0" max="90" value="15" step="1">
+              <span class="control-value" id="cyanAngle-val">15°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Magenta</span>
+              <input type="range" id="magentaAngle" min="0" max="90" value="75" step="1">
+              <span class="control-value" id="magentaAngle-val">75°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Yellow</span>
+              <input type="range" id="yellowAngle" min="0" max="90" value="0" step="1">
+              <span class="control-value" id="yellowAngle-val">0°</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">Black</span>
+              <input type="range" id="blackAngle" min="0" max="90" value="45" step="1">
+              <span class="control-value" id="blackAngle-val">45°</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Ink Colors -->
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">Ink Colors</span>
+          </div>
+          <div class="section-content">
+            <!-- Cyan -->
+            <div class="ink-row">
+              <span class="ink-label">Cyan</span>
+              <div class="figma-color-picker">
+                <div class="color-hex-group">
+                  <input type="color" id="cyanInk" value="#00FFFF" class="color-swatch-figma">
+                  <input type="text" class="hex-input" id="cyanInk-text" value="00FFFF" maxlength="6">
+                </div>
+                <div class="alpha-group" data-alpha-for="cyanAlpha">
+                  <input type="text" class="alpha-input" id="cyanAlpha" value="95" maxlength="3">
+                  <span class="alpha-percent">%</span>
+                </div>
+                <button class="visibility-toggle active" id="showCyan" type="button" title="Toggle visibility">
+                  <svg class="eye-open" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg class="eye-closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Magenta -->
+            <div class="ink-row">
+              <span class="ink-label">Magenta</span>
+              <div class="figma-color-picker">
+                <div class="color-hex-group">
+                  <input type="color" id="magentaInk" value="#FF00FF" class="color-swatch-figma">
+                  <input type="text" class="hex-input" id="magentaInk-text" value="FF00FF" maxlength="6">
+                </div>
+                <div class="alpha-group" data-alpha-for="magentaAlpha">
+                  <input type="text" class="alpha-input" id="magentaAlpha" value="95" maxlength="3">
+                  <span class="alpha-percent">%</span>
+                </div>
+                <button class="visibility-toggle active" id="showMagenta" type="button" title="Toggle visibility">
+                  <svg class="eye-open" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg class="eye-closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Yellow -->
+            <div class="ink-row">
+              <span class="ink-label">Yellow</span>
+              <div class="figma-color-picker">
+                <div class="color-hex-group">
+                  <input type="color" id="yellowInk" value="#FFFF00" class="color-swatch-figma">
+                  <input type="text" class="hex-input" id="yellowInk-text" value="FFFF00" maxlength="6">
+                </div>
+                <div class="alpha-group" data-alpha-for="yellowAlpha">
+                  <input type="text" class="alpha-input" id="yellowAlpha" value="95" maxlength="3">
+                  <span class="alpha-percent">%</span>
+                </div>
+                <button class="visibility-toggle active" id="showYellow" type="button" title="Toggle visibility">
+                  <svg class="eye-open" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg class="eye-closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Black -->
+            <div class="ink-row">
+              <span class="ink-label">Black</span>
+              <div class="figma-color-picker">
+                <div class="color-hex-group">
+                  <input type="color" id="blackInk" value="#000000" class="color-swatch-figma">
+                  <input type="text" class="hex-input" id="blackInk-text" value="000000" maxlength="6">
+                </div>
+                <div class="alpha-group" data-alpha-for="blackAlpha">
+                  <input type="text" class="alpha-input" id="blackAlpha" value="95" maxlength="3">
+                  <span class="alpha-percent">%</span>
+                </div>
+                <button class="visibility-toggle active" id="showBlack" type="button" title="Toggle visibility">
+                  <svg class="eye-open" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg class="eye-closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Background -->
+            <div class="ink-row">
+              <span class="ink-label">Background</span>
+              <div class="figma-color-picker">
+                <div class="color-hex-group">
+                  <input type="color" id="paperColor" value="#f8f4e8" class="color-swatch-figma">
+                  <input type="text" class="hex-input" id="paperColor-text" value="F8F4E8" maxlength="6">
+                </div>
+                <div class="alpha-group paper-alpha">
+                  <input type="text" class="alpha-input" id="paperAlpha" value="100" maxlength="3" disabled>
+                  <span class="alpha-percent">%</span>
+                </div>
+                <span class="visibility-icon" title="Always visible">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Reset -->
+        <div class="reset-container">
+          <button class="btn btn-secondary" style="width: 100%;" onclick="resetDefaults()">
+            Reset to Defaults
+          </button>
+        </div>
+      </div>
+      
+      <div class="sidebar-footer">
+        <button class="btn-icon" id="about-btn" title="About" onclick="showAbout()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <path d="M12 8h.01"/>
+          </svg>
+        </button>
+        <button class="btn btn-secondary" onclick="cancel()">Cancel</button>
+        <button class="btn btn-primary" id="apply-btn" onclick="applyHalftone()">Apply</button>
+      </div>
+    </div>
+    
+    <!-- Main preview area -->
+    <div class="main-area" id="main-area">
+      <div class="empty-state" id="empty-state">
+        <h2>Select an image</h2>
+        <p>Select an image or a shape with an image fill in Figma to apply the halftone effect.</p>
+      </div>
+      
+      <!-- Canvas container for zoom/pan -->
+      <div class="canvas-container" id="canvas-container" style="display: none;">
+        <div class="canvas-wrapper" id="canvas-wrapper">
+          <canvas id="preview-canvas"></canvas>
+        </div>
+      </div>
+      
+      <!-- Zoom controls -->
+      <div class="zoom-controls" id="zoom-controls" style="display: none;">
+        <button class="zoom-btn" id="zoom-out" title="Zoom out">−</button>
+        <span class="zoom-value" id="zoom-value">100%</span>
+        <button class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
+        <div class="zoom-divider"></div>
+        <button class="zoom-btn" id="zoom-fit" title="Fit to view">⊡</button>
+      </div>
+      
+      <div class="loading" id="loading" style="display: none;">Processing...</div>
+    </div>
+    
+    <!-- Resize handle -->
+    <div class="resize-handle" id="resize-handle" title="Drag to resize">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+        <circle cx="10" cy="10" r="1.5"/>
+        <circle cx="6" cy="10" r="1.5"/>
+        <circle cx="10" cy="6" r="1.5"/>
+        <circle cx="2" cy="10" r="1.5"/>
+        <circle cx="6" cy="6" r="1.5"/>
+        <circle cx="10" cy="2" r="1.5"/>
+      </svg>
+    </div>
+    
+    <!-- About Modal -->
+    <div class="modal-overlay" id="about-modal" style="display: none;">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>CMYK Halftone</h2>
+          <button class="modal-close" onclick="hideAbout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-content">
+          <p class="modal-version">Version 1.0.0</p>
+          
+          <div class="modal-section">
+            <h3>What is this?</h3>
+            <p>Emulate the look of <a href="https://en.wikipedia.org/wiki/Halftone" target="_blank">CMYK halftone printing</a> with customizable inks, screen angles.</p>
+          </div>
+          
+          <div class="modal-section">
+            <h3>How to use</h3>
+            <ol>
+              <li>Select an image or shape with an image fill</li>
+              <li>Adjust the halftone settings to your liking</li>
+              <li>Click "Apply" to replace the original or create a new image</li>
+            </ol>
+          </div>
+          
+          <div class="modal-section">
+            <h3>Links</h3>
+            <div class="modal-links">
+              <a href="https://github.com/danielpetho/cmyk-halftone-emulator/issues" target="_blank">Report a bug</a>
+              <a href="https://github.com/danielpetho/cmyk-halftone-emulator" target="_blank">GitHub</a>
+              <a href="https://twitter.com/nonzeroexticode" target="_blank">Twitter / X</a>
+            </div>
+          </div>
+          
+          <div class="modal-section">
+            <h3>Created by</h3>
+            <p>Made with ♥ by <a href="https://danielpetho.com" target="_blank">Daniel Petho</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { LandingPage } from "./components/LandingPage";
 import { WebGLHalftoneProcessor } from "./components/WebGLHalftoneProcessor";
+import { FigmaPluginBanner } from "./components/FigmaPluginBanner";
 
 export default function App() {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -28,6 +29,7 @@ export default function App() {
 
   return (
     <div className="h-screen w-screen bg-background overflow-hidden overscroll-contain! ">
+      <FigmaPluginBanner />
       {!mediaFile ? (
         <LandingPage
           onImageUpload={handleMediaUpload}

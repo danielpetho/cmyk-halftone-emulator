@@ -1,7 +1,7 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "cd webapp && npm run build",
   "outputDirectory": "build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install"
+  "devCommand": "cd webapp && npm run dev",
+  "installCommand": "cd webapp && npm install"
 }
 
