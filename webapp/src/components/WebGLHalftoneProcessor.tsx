@@ -9,6 +9,7 @@ import { useIsMobile } from "./ui/use-mobile";
 import { Sidebar } from "./Sidebar";
 import { MobileSidebar } from "./MobileSidebar";
 import { HalftoneSettings } from "./HalftoneControls";
+import type { PresetValues } from "../lib/presets";
 import { ZoomControls } from "./ZoomControls";
 
 interface WebGLHalftoneProcessorProps {
@@ -55,6 +56,7 @@ const DEFAULTS = {
   blackInk: "#000000",
   blackAlpha: [0.95],
   paperColor: "#f8f4e8",
+  paperAlpha: [1.0],
   showCyan: true,
   showMagenta: true,
   showYellow: true,
@@ -175,6 +177,7 @@ export function WebGLHalftoneProcessor({
   const [blackInk, setBlackInk] = useState(DEFAULTS.blackInk);
   const [blackAlpha, setBlackAlpha] = useState(DEFAULTS.blackAlpha);
   const [paperColor, setPaperColor] = useState(DEFAULTS.paperColor);
+  const [paperAlpha, setPaperAlpha] = useState(DEFAULTS.paperAlpha);
 
   // Layer visibility controls
   const [showCyan, setShowCyan] = useState(DEFAULTS.showCyan);
@@ -209,10 +212,87 @@ export function WebGLHalftoneProcessor({
     setBlackInk(DEFAULTS.blackInk);
     setBlackAlpha(DEFAULTS.blackAlpha);
     setPaperColor(DEFAULTS.paperColor);
+    setPaperAlpha(DEFAULTS.paperAlpha);
     setShowCyan(DEFAULTS.showCyan);
     setShowMagenta(DEFAULTS.showMagenta);
     setShowYellow(DEFAULTS.showYellow);
     setShowBlack(DEFAULTS.showBlack);
+  }, []);
+
+  // Extract current values as a PresetValues object
+  const getCurrentValues = useCallback((): PresetValues => ({
+    frequency,
+    dotSize,
+    roughness,
+    fuzz,
+    paperNoise,
+    inkNoise,
+    randomness,
+    contrast,
+    lightness,
+    blur,
+    threshold,
+    blendMode,
+    cyanAngle,
+    magentaAngle,
+    yellowAngle,
+    blackAngle,
+    cyanInk,
+    cyanAlpha,
+    magentaInk,
+    magentaAlpha,
+    yellowInk,
+    yellowAlpha,
+    blackInk,
+    blackAlpha,
+    paperColor,
+    paperAlpha,
+    showCyan,
+    showMagenta,
+    showYellow,
+    showBlack,
+  }), [
+    frequency, dotSize, roughness, fuzz, paperNoise, inkNoise,
+    randomness, contrast, lightness, blur, threshold, blendMode,
+    cyanAngle, magentaAngle, yellowAngle, blackAngle,
+    cyanInk, cyanAlpha, magentaInk, magentaAlpha,
+    yellowInk, yellowAlpha, blackInk, blackAlpha,
+    paperColor, paperAlpha,
+    showCyan, showMagenta, showYellow, showBlack,
+  ]);
+
+  // Apply preset values to all state
+  const applyPresetValues = useCallback((v: PresetValues) => {
+    setFrequency(v.frequency);
+    setDotSize(v.dotSize);
+    setRoughness(v.roughness);
+    setFuzz(v.fuzz);
+    setPaperNoise(v.paperNoise);
+    setInkNoise(v.inkNoise);
+    setRandomness(v.randomness);
+    setContrast(v.contrast);
+    setLightness(v.lightness);
+    setBlur(v.blur);
+    setThreshold(v.threshold);
+    setBlendMode(v.blendMode);
+    setCyanAngle(v.cyanAngle);
+    setMagentaAngle(v.magentaAngle);
+    setYellowAngle(v.yellowAngle);
+    setBlackAngle(v.blackAngle);
+    setCyanInk(v.cyanInk);
+    setCyanAlpha(v.cyanAlpha);
+    setMagentaInk(v.magentaInk);
+    setMagentaAlpha(v.magentaAlpha);
+    setYellowInk(v.yellowInk);
+    setYellowAlpha(v.yellowAlpha);
+    setBlackInk(v.blackInk);
+    setBlackAlpha(v.blackAlpha);
+    setPaperColor(v.paperColor);
+    setPaperAlpha(v.paperAlpha);
+    setShowCyan(v.showCyan);
+    setShowMagenta(v.showMagenta);
+    setShowYellow(v.showYellow);
+    setShowBlack(v.showBlack);
   }, []);
 
   // Handle file swap
@@ -707,9 +787,13 @@ export function WebGLHalftoneProcessor({
     const gl =
       canvas.getContext("webgl", {
         preserveDrawingBuffer: true,
+        alpha: true,
+        premultipliedAlpha: true,
       }) ||
       canvas.getContext("experimental-webgl", {
         preserveDrawingBuffer: true,
+        alpha: true,
+        premultipliedAlpha: true,
       });
     if (!gl) {
       console.error("WebGL not supported");
@@ -850,8 +934,12 @@ export function WebGLHalftoneProcessor({
     try {
       gl.useProgram(program);
 
-      // Clear canvas
-      gl.clearColor(0, 0, 0, 1);
+      // Enable alpha blending for transparent backgrounds
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+      // Clear canvas with transparent background
+      gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
 
       // Bind texture
@@ -923,14 +1011,15 @@ export function WebGLHalftoneProcessor({
           gl.uniform1f(uniforms.u_threshold, threshold[0])
         );
 
-      const paperCol = hexToRgba(paperColor);
+      const paperCol = hexToRgba(paperColor, paperAlpha[0]);
       if (uniforms.u_paperColor)
         setUniform("u_paperColor", () =>
-          gl.uniform3f(
+          gl.uniform4f(
             uniforms.u_paperColor,
             paperCol[0],
             paperCol[1],
-            paperCol[2]
+            paperCol[2],
+            paperCol[3]
           )
         );
 
@@ -1063,6 +1152,7 @@ export function WebGLHalftoneProcessor({
     blackInk,
     blackAlpha,
     paperColor,
+    paperAlpha,
     showCyan,
     showMagenta,
     showYellow,
@@ -1444,14 +1534,24 @@ export function WebGLHalftoneProcessor({
       setBlackAngle,
       cyanInk,
       setCyanInk,
+      cyanAlpha,
+      setCyanAlpha,
       magentaInk,
       setMagentaInk,
+      magentaAlpha,
+      setMagentaAlpha,
       yellowInk,
       setYellowInk,
+      yellowAlpha,
+      setYellowAlpha,
       blackInk,
       setBlackInk,
+      blackAlpha,
+      setBlackAlpha,
       paperColor,
       setPaperColor,
+      paperAlpha,
+      setPaperAlpha,
       showCyan,
       setShowCyan,
       showMagenta,
@@ -1479,10 +1579,15 @@ export function WebGLHalftoneProcessor({
       yellowAngle,
       blackAngle,
       cyanInk,
+      cyanAlpha,
       magentaInk,
+      magentaAlpha,
       yellowInk,
+      yellowAlpha,
       blackInk,
+      blackAlpha,
       paperColor,
+      paperAlpha,
       showCyan,
       showMagenta,
       showYellow,
@@ -1554,6 +1659,11 @@ export function WebGLHalftoneProcessor({
             className="border border-border"
             style={{
               imageRendering: "auto",
+              backgroundImage: paperAlpha[0] < 1
+                ? "linear-gradient(45deg, #e0e0e0 25%, transparent 25%), linear-gradient(-45deg, #e0e0e0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e0e0e0 75%), linear-gradient(-45deg, transparent 75%, #e0e0e0 75%)"
+                : "none",
+              backgroundSize: "16px 16px",
+              backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0px",
             }}
           />
         </div>
@@ -1618,6 +1728,8 @@ export function WebGLHalftoneProcessor({
               onSwapMedia={triggerSwapMedia}
               onDownload={handleDownload}
               videoControls={videoControlsProps}
+              getCurrentValues={getCurrentValues}
+              applyPresetValues={applyPresetValues}
             />
           </div>
         </div>
@@ -1636,6 +1748,8 @@ export function WebGLHalftoneProcessor({
               onSwapMedia={triggerSwapMedia}
               onDownload={handleDownload}
               videoControls={videoControlsProps}
+              getCurrentValues={getCurrentValues}
+              applyPresetValues={applyPresetValues}
             />
           </div>
 

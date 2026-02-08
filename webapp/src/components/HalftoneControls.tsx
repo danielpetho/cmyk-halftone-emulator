@@ -1,6 +1,5 @@
 import { Label } from "./ui/label";
 import { Slider } from "./ui/slider";
-import { Checkbox } from "./ui/checkbox";
 import { Button } from "./ui/button";
 import {
   Select,
@@ -15,7 +14,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import { Info, Play, Pause, SkipBack, SkipForward, Circle, Square } from "lucide-react";
+import { Info, Play, Pause, SkipBack, SkipForward, Circle, Square, Eye, EyeOff } from "lucide-react";
 import { Knob } from "./ui/knob";
 import { ColorPicker } from "./ui/color-picker";
 import {
@@ -25,6 +24,8 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { VideoControlsProps } from "./VideoControls";
+import { PresetSelector } from "./PresetSelector";
+import type { PresetValues } from "../lib/presets";
 
 export interface HalftoneSettings {
   // General settings
@@ -66,14 +67,24 @@ export interface HalftoneSettings {
   // Ink colors
   cyanInk: string;
   setCyanInk: (v: string) => void;
+  cyanAlpha: number[];
+  setCyanAlpha: (v: number[]) => void;
   magentaInk: string;
   setMagentaInk: (v: string) => void;
+  magentaAlpha: number[];
+  setMagentaAlpha: (v: number[]) => void;
   yellowInk: string;
   setYellowInk: (v: string) => void;
+  yellowAlpha: number[];
+  setYellowAlpha: (v: number[]) => void;
   blackInk: string;
   setBlackInk: (v: string) => void;
+  blackAlpha: number[];
+  setBlackAlpha: (v: number[]) => void;
   paperColor: string;
   setPaperColor: (v: string) => void;
+  paperAlpha: number[];
+  setPaperAlpha: (v: number[]) => void;
 
   // Layer visibility
   showCyan: boolean;
@@ -101,6 +112,9 @@ interface HalftoneControlsProps {
   previewVideoUrl?: string | null;
   showOriginalMedia?: boolean;
   videoControls?: VideoControlsProps;
+  getCurrentValues?: () => PresetValues;
+  applyPresetValues?: (v: PresetValues) => void;
+  onResetDefaults?: () => void;
 }
 
 export function HalftoneControls({
@@ -110,6 +124,9 @@ export function HalftoneControls({
   previewVideoUrl,
   showOriginalMedia = true,
   videoControls,
+  getCurrentValues,
+  applyPresetValues,
+  onResetDefaults,
 }: HalftoneControlsProps) {
   const {
     frequency,
@@ -146,14 +163,24 @@ export function HalftoneControls({
     setBlackAngle,
     cyanInk,
     setCyanInk,
+    cyanAlpha,
+    setCyanAlpha,
     magentaInk,
     setMagentaInk,
+    magentaAlpha,
+    setMagentaAlpha,
     yellowInk,
     setYellowInk,
+    yellowAlpha,
+    setYellowAlpha,
     blackInk,
     setBlackInk,
+    blackAlpha,
+    setBlackAlpha,
     paperColor,
     setPaperColor,
+    paperAlpha,
+    setPaperAlpha,
     showCyan,
     setShowCyan,
     showMagenta,
@@ -166,6 +193,8 @@ export function HalftoneControls({
 
   // Build default open accordions based on what's available
   const defaultOpenSections = [
+    "preset",
+    "blend-mode",
     "halftone-settings",
     "ink-colors",
   ];
@@ -176,6 +205,38 @@ export function HalftoneControls({
   return (
     <TooltipProvider>
       <Accordion type="multiple" defaultValue={defaultOpenSections}>
+        {/* Preset */}
+        {getCurrentValues && applyPresetValues && onResetDefaults && (
+          <AccordionItem value="preset" className="">
+            <AccordionTrigger className="text-lg uppercase items-center">
+              Presets
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2 pb-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1">
+                    <Label className="text-sm">Preset</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Save and load your halftone settings as presets.</p>
+                        <p>Presets are stored locally in your browser.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <PresetSelector
+                    getCurrentValues={getCurrentValues}
+                    applyValues={applyPresetValues}
+                    onResetDefaults={onResetDefaults}
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
         {/* Video Controls - only visible for videos */}
         {isVideo && videoControls && (
           <AccordionItem value="video-controls" className="">
@@ -313,16 +374,16 @@ export function HalftoneControls({
           </AccordionItem>
         )}
 
-        {/* Halftone Settings */}
-        <AccordionItem value="halftone-settings" className="">
+        {/* Blend Mode */}
+        <AccordionItem value="blend-mode" className="">
           <AccordionTrigger className="text-lg uppercase items-center">
-            Halftone Settings
+            Blend Mode
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-4 pt-2 pb-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
-                  <Label className="text-sm">Blend Mode</Label>
+                  <Label className="text-sm">Mode</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground cursor-help" />
@@ -348,79 +409,17 @@ export function HalftoneControls({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-sm">Contrast: {contrast[0].toFixed(2)}</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Adjusts the tonal range of the image before halftone processing</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider
-                  value={contrast}
-                  onValueChange={setContrast}
-                  min={0.3}
-                  max={2.0}
-                  step={0.01}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-sm">Lightness: {lightness[0].toFixed(2)}</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Adjusts the overall brightness of the image before halftone processing</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider
-                  value={lightness}
-                  onValueChange={setLightness}
-                  min={-0.5}
-                  max={0.5}
-                  step={0.01}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-sm">Blur (Pre-filter): {blur[0].toFixed(1)}px</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Softens edges before halftone processing to reduce harsh cutoffs</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider value={blur} onValueChange={setBlur} min={0} max={30.0} step={0.1} />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-sm">Threshold (Cutoff): {threshold[0].toFixed(2)}</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Eliminates small dots below this value to remove artifacts (0.05-0.15 recommended)</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider value={threshold} onValueChange={setThreshold} min={0} max={0.5} step={0.01} />
-              </div>
-
+        {/* Halftone Settings */}
+        <AccordionItem value="halftone-settings" className="">
+          <AccordionTrigger className="text-lg uppercase items-center">
+            Halftone Settings
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-4 pt-2 pb-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
                   <Label className="text-sm">Frequency: {frequency[0]}</Label>
@@ -483,6 +482,113 @@ export function HalftoneControls({
 
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
+                  <Label className="text-sm">Dot Randomness: {randomness[0].toFixed(2)}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Randomly shifts dot positions to break up regular grid patterns</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Slider value={randomness} onValueChange={setRandomness} min={0} max={0.4} step={0.05} />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-sm">Threshold (Cutoff): {threshold[0].toFixed(2)}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Eliminates small dots below this value to remove artifacts (0.05-0.15 recommended)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Slider value={threshold} onValueChange={setThreshold} min={0} max={0.5} step={0.01} />
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Image (Pre-filtering) */}
+        <AccordionItem value="image-prefilter" className="">
+          <AccordionTrigger className="text-lg uppercase items-center">
+            Image (Pre-filtering)
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-4 pt-2 pb-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-sm">Contrast: {contrast[0].toFixed(2)}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Adjusts the tonal range of the image before halftone processing</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Slider
+                  value={contrast}
+                  onValueChange={setContrast}
+                  min={0.3}
+                  max={2.0}
+                  step={0.01}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-sm">Lightness: {lightness[0].toFixed(2)}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Adjusts the overall brightness of the image before halftone processing</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Slider
+                  value={lightness}
+                  onValueChange={setLightness}
+                  min={-0.5}
+                  max={0.5}
+                  step={0.01}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-sm">Blur: {blur[0].toFixed(1)}px</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Softens edges before halftone processing to reduce harsh cutoffs</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Slider value={blur} onValueChange={setBlur} min={0} max={30.0} step={0.1} />
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Noise & Texture */}
+        <AccordionItem value="noise-texture" className="">
+          <AccordionTrigger className="text-lg uppercase items-center">
+            Noise & Texture
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-4 pt-2 pb-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
                   <Label className="text-sm">Paper Noise: {paperNoise[0].toFixed(2)}</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -510,111 +616,84 @@ export function HalftoneControls({
                 </div>
                 <Slider value={inkNoise} onValueChange={setInkNoise} min={0} max={1} step={0.05} />
               </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-sm">Dot Randomness: {randomness[0].toFixed(2)}</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Randomly shifts dot positions to break up regular grid patterns</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider value={randomness} onValueChange={setRandomness} min={0} max={0.4} step={0.05} />
-              </div>
             </div>
           </AccordionContent>
         </AccordionItem>
 
-        {/* Ink Colors */}
+        {/* Ink Colors & Visibility */}
         <AccordionItem value="ink-colors" className="">
           <AccordionTrigger className="text-lg uppercase items-center">
             Ink Colors
           </AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-2 gap-4 pt-2 pb-6">
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Cyan</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={cyanInk} onChange={setCyanInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {cyanInk.toUpperCase()}
+            <div className="pt-2 pb-6" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {/* Ink color rows */}
+              {([
+                { label: "Cyan", color: cyanInk, setColor: setCyanInk, alpha: cyanAlpha, setAlpha: setCyanAlpha, show: showCyan, setShow: setShowCyan },
+                { label: "Magenta", color: magentaInk, setColor: setMagentaInk, alpha: magentaAlpha, setAlpha: setMagentaAlpha, show: showMagenta, setShow: setShowMagenta },
+                { label: "Yellow", color: yellowInk, setColor: setYellowInk, alpha: yellowAlpha, setAlpha: setYellowAlpha, show: showYellow, setShow: setShowYellow },
+                { label: "Black", color: blackInk, setColor: setBlackInk, alpha: blackAlpha, setAlpha: setBlackAlpha, show: showBlack, setShow: setShowBlack },
+              ] as const).map(({ label, color, setColor, alpha, setAlpha, show, setShow }) => (
+                <div
+                  key={label}
+                  className="flex items-center"
+                  style={{ gap: '8px', padding: '5px 0', opacity: show ? 1 : 0.45 }}
+                >
+                  <span className="text-xs" style={{ width: '52px', flexShrink: 0 }}>{label}</span>
+                  <ColorPicker value={color} onChange={setColor} className="w-8 h-8" style={{ borderRadius: 0 }} />
+                  <span className="text-xs text-muted-foreground" style={{ flex: 1, minWidth: 0, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
+                    {color.slice(1).toUpperCase()}
                   </span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Magenta</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={magentaInk} onChange={setMagentaInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {magentaInk.toUpperCase()}
+                  <span className="text-xs text-muted-foreground" style={{ width: '34px', textAlign: 'right', fontFamily: 'monospace' }}>
+                    {Math.round(alpha[0] * 100)}%
                   </span>
+                  <Slider
+                    value={alpha}
+                    onValueChange={setAlpha}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    style={{ width: '48px', flexShrink: 0 }}
+                  />
+                  <button
+                    onClick={() => setShow(!show)}
+                    className="cursor-pointer"
+                    style={{ padding: '2px', background: 'none', border: 'none', opacity: show ? 0.7 : 0.35, flexShrink: 0 }}
+                    title={show ? `Hide ${label}` : `Show ${label}`}
+                  >
+                    {show ? <Eye style={{ width: '14px', height: '14px' }} /> : <EyeOff style={{ width: '14px', height: '14px' }} />}
+                  </button>
                 </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Yellow</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={yellowInk} onChange={setYellowInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {yellowInk.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Black</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={blackInk} onChange={setBlackInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {blackInk.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2 col-span-2 pt-4">
-                <Label className="text-xs text-center">Paper Color</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={paperColor} onChange={setPaperColor} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {paperColor.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+              ))}
 
-        {/* Layer Visibility */}
-        <AccordionItem value="layer-visibility" className="">
-          <AccordionTrigger className="text-lg uppercase items-center">
-            Layer Visibility
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-3 pt-2 pb-6">
-              <div className="flex items-center space-x-2">
-                <Checkbox id="cyan" checked={showCyan} onCheckedChange={setShowCyan} />
-                <Label htmlFor="cyan" className="text-sm text-cyan-600">
-                  Cyan
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="magenta" checked={showMagenta} onCheckedChange={setShowMagenta} />
-                <Label htmlFor="magenta" className="text-sm text-pink-600">
-                  Magenta
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="yellow" checked={showYellow} onCheckedChange={setShowYellow} />
-                <Label htmlFor="yellow" className="text-sm text-yellow-600">
-                  Yellow
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="black" checked={showBlack} onCheckedChange={setShowBlack} />
-                <Label htmlFor="black" className="text-sm text-gray-800">
-                  Black
-                </Label>
+              {/* Separator */}
+              <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
+
+              {/* Paper / Background row */}
+              <div
+                className="flex items-center"
+                style={{ gap: '8px', padding: '5px 0' }}
+              >
+                <span className="text-xs" style={{ width: '52px', flexShrink: 0 }}>Paper</span>
+                <ColorPicker value={paperColor} onChange={setPaperColor} className="w-8 h-8" style={{ borderRadius: 0 }} />
+                <span className="text-xs text-muted-foreground" style={{ flex: 1, minWidth: 0, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
+                  {paperColor.slice(1).toUpperCase()}
+                </span>
+                <span className="text-xs text-muted-foreground" style={{ width: '34px', textAlign: 'right', fontFamily: 'monospace' }}>
+                  {Math.round(paperAlpha[0] * 100)}%
+                </span>
+                <Slider
+                  value={paperAlpha}
+                  onValueChange={setPaperAlpha}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  style={{ width: '48px', flexShrink: 0 }}
+                />
+                {/* Static eye icon (paper is always visible) */}
+                <span style={{ padding: '2px', opacity: 0.35, flexShrink: 0 }}>
+                  <Eye style={{ width: '14px', height: '14px' }} />
+                </span>
               </div>
             </div>
           </AccordionContent>
