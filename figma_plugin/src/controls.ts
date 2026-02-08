@@ -60,6 +60,7 @@ export function getSettings(): HalftoneSettings {
     blackInk: getInputValue('blackInk', 'string') as string,
     blackAlpha: getAlphaValue('blackAlpha'),
     paperColor: getInputValue('paperColor', 'string') as string,
+    paperAlpha: getAlphaValue('paperAlpha'),
     showCyan: getInputValue('showCyan', 'boolean') as boolean,
     showMagenta: getInputValue('showMagenta', 'boolean') as boolean,
     showYellow: getInputValue('showYellow', 'boolean') as boolean,
@@ -162,7 +163,7 @@ export function setupControls(onRender: RenderCallback): void {
   });
 
   // Alpha inputs (text-based, 0-100)
-  const alphaInputs = ['cyanAlpha', 'magentaAlpha', 'yellowAlpha', 'blackAlpha'];
+  const alphaInputs = ['cyanAlpha', 'magentaAlpha', 'yellowAlpha', 'blackAlpha', 'paperAlpha'];
   alphaInputs.forEach(id => {
     const input = $(id) as HTMLInputElement | null;
     if (input) {
@@ -280,6 +281,7 @@ export function resetDefaults(onRender: RenderCallback): void {
   
   setInput('paperColor', DEFAULTS.paperColor);
   setInput('paperColor-text', DEFAULTS.paperColor.slice(1).toUpperCase());
+  setInput('paperAlpha', Math.round(DEFAULTS.paperAlpha * 100));
   
   // Set visibility toggles
   const setVisibility = (id: string, visible: boolean) => {

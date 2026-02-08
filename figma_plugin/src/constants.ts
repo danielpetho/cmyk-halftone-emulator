@@ -25,6 +25,7 @@ export const DEFAULTS = {
   blackInk: '#000000',
   blackAlpha: 0.95,
   paperColor: '#f8f4e8',
+  paperAlpha: 1.0,
   showCyan: true,
   showMagenta: true,
   showYellow: true,
@@ -57,6 +58,7 @@ export interface HalftoneSettings {
   blackInk: string;
   blackAlpha: number;
   paperColor: string;
+  paperAlpha: number;
   showCyan: boolean;
   showMagenta: boolean;
   showYellow: boolean;

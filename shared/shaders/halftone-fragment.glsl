@@ -19,7 +19,7 @@ uniform float u_contrast;
 uniform float u_lightness;
 uniform float u_blur;
 uniform float u_threshold;
-uniform vec3 u_paperColor;
+uniform vec4 u_paperColor;
 
 // CMYK channel controls - angles in degrees
 uniform float u_cyanAngle;
@@ -300,7 +300,8 @@ void main() {
   float paperNoiseValue = 0.1 * f + 0.05 * length(g);
   
   // Paper and ink colors with noise
-  vec3 paper = u_paperColor - u_paperNoise * paperNoiseValue;
+  vec3 paper = u_paperColor.rgb - u_paperNoise * paperNoiseValue;
+  float paperAlpha = u_paperColor.a;
   float inkamount = 0.9 - u_inkNoise * paperNoiseValue;
   
   // For each channel, sample at grid-aligned position with that channel's angle
@@ -415,5 +416,11 @@ void main() {
   
   vec3 finalColor = mix(rgbscreen, texcolor, blend);
   
-  gl_FragColor = vec4(finalColor, 1.0);  
+  // Compute output alpha: paper alpha plus ink coverage
+  // Any ink dot drawn on top adds opacity
+  float inkCoverage = max(max(c, m), max(y, k));
+  float finalAlpha = mix(paperAlpha + (1.0 - paperAlpha) * inkCoverage, 1.0, blend);
+  
+  // Pre-multiply alpha for correct blending
+  gl_FragColor = vec4(finalColor * finalAlpha, finalAlpha);  
 }

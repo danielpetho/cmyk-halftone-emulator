@@ -2,6 +2,7 @@ import { ImageUpload } from "./ImageUpload";
 import SimpleMarquee from "./ui/simple-marquee";
 import { useState, useEffect } from "react";
 import { InfoModal } from "./InfoModal";
+import { FigmaPluginBanner } from "./FigmaPluginBanner";
 
 interface LandingPageProps {
   onImageUpload: (file: File) => void;
@@ -50,6 +51,7 @@ export function LandingPage({
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden">
+      <FigmaPluginBanner />
       {/* Upload section at the top */}
       <div className="h-screen w-screen flex items-center justify-center py-8 px-4 z-10 relative">
         <div className="">

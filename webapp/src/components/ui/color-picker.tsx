@@ -24,7 +24,7 @@ const ColorPicker = forwardRef<
   Omit<ButtonProps, 'value' | 'onChange' | 'onBlur'> & ColorPickerProps & ButtonProps
 >(
   (
-    { disabled, value, onChange, onBlur, name, className, size, ...props },
+    { disabled, value, onChange, onBlur, name, className, size, style, ...props },
     forwardedRef
   ) => {
     const ref = useForwardedRef(forwardedRef);
@@ -46,6 +46,7 @@ const ColorPicker = forwardRef<
             }}
             size={size}
             style={{
+              ...style,
               backgroundColor: parsedValue,
               borderRadius: 0
             }}

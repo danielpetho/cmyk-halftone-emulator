@@ -48,7 +48,7 @@ export class HalftoneRenderer {
   }
 
   init(): boolean {
-    this.gl = this.canvas.getContext('webgl', { preserveDrawingBuffer: true }) as WebGLRenderingContext | null;
+    this.gl = this.canvas.getContext('webgl', { preserveDrawingBuffer: true, alpha: true, premultipliedAlpha: true }) as WebGLRenderingContext | null;
     
     if (!this.gl) {
       console.error('WebGL not supported');
@@ -217,6 +217,11 @@ export class HalftoneRenderer {
     if (!this.gl || !this.program || !this.texture || !this.uniforms || !this.isImageLoaded) return;
 
     this.gl.useProgram(this.program);
+
+    // Enable alpha blending for transparent backgrounds
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
+
     this.gl.clearColor(0, 0, 0, 0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
@@ -239,7 +244,7 @@ export class HalftoneRenderer {
     this.gl.uniform1f(this.uniforms.u_threshold, settings.threshold);
 
     const paperRgb = this.hexToRgb(settings.paperColor);
-    this.gl.uniform3f(this.uniforms.u_paperColor, paperRgb[0], paperRgb[1], paperRgb[2]);
+    this.gl.uniform4f(this.uniforms.u_paperColor, paperRgb[0], paperRgb[1], paperRgb[2], settings.paperAlpha);
 
     this.gl.uniform1f(this.uniforms.u_cyanAngle, settings.cyanAngle);
     this.gl.uniform1f(this.uniforms.u_magentaAngle, settings.magentaAngle);

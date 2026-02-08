@@ -1,6 +1,5 @@
 import { Label } from "./ui/label";
 import { Slider } from "./ui/slider";
-import { Checkbox } from "./ui/checkbox";
 import { Button } from "./ui/button";
 import {
   Select,
@@ -15,7 +14,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import { Info, Play, Pause, SkipBack, SkipForward, Circle, Square } from "lucide-react";
+import { Info, Play, Pause, SkipBack, SkipForward, Circle, Square, Eye, EyeOff } from "lucide-react";
 import { Knob } from "./ui/knob";
 import { ColorPicker } from "./ui/color-picker";
 import {
@@ -66,14 +65,24 @@ export interface HalftoneSettings {
   // Ink colors
   cyanInk: string;
   setCyanInk: (v: string) => void;
+  cyanAlpha: number[];
+  setCyanAlpha: (v: number[]) => void;
   magentaInk: string;
   setMagentaInk: (v: string) => void;
+  magentaAlpha: number[];
+  setMagentaAlpha: (v: number[]) => void;
   yellowInk: string;
   setYellowInk: (v: string) => void;
+  yellowAlpha: number[];
+  setYellowAlpha: (v: number[]) => void;
   blackInk: string;
   setBlackInk: (v: string) => void;
+  blackAlpha: number[];
+  setBlackAlpha: (v: number[]) => void;
   paperColor: string;
   setPaperColor: (v: string) => void;
+  paperAlpha: number[];
+  setPaperAlpha: (v: number[]) => void;
 
   // Layer visibility
   showCyan: boolean;
@@ -146,14 +155,24 @@ export function HalftoneControls({
     setBlackAngle,
     cyanInk,
     setCyanInk,
+    cyanAlpha,
+    setCyanAlpha,
     magentaInk,
     setMagentaInk,
+    magentaAlpha,
+    setMagentaAlpha,
     yellowInk,
     setYellowInk,
+    yellowAlpha,
+    setYellowAlpha,
     blackInk,
     setBlackInk,
+    blackAlpha,
+    setBlackAlpha,
     paperColor,
     setPaperColor,
+    paperAlpha,
+    setPaperAlpha,
     showCyan,
     setShowCyan,
     showMagenta,
@@ -529,92 +548,80 @@ export function HalftoneControls({
           </AccordionContent>
         </AccordionItem>
 
-        {/* Ink Colors */}
+        {/* Ink Colors & Visibility */}
         <AccordionItem value="ink-colors" className="">
           <AccordionTrigger className="text-lg uppercase items-center">
             Ink Colors
           </AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-2 gap-4 pt-2 pb-6">
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Cyan</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={cyanInk} onChange={setCyanInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {cyanInk.toUpperCase()}
+            <div className="pt-2 pb-6" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {/* Ink color rows */}
+              {([
+                { label: "Cyan", color: cyanInk, setColor: setCyanInk, alpha: cyanAlpha, setAlpha: setCyanAlpha, show: showCyan, setShow: setShowCyan },
+                { label: "Magenta", color: magentaInk, setColor: setMagentaInk, alpha: magentaAlpha, setAlpha: setMagentaAlpha, show: showMagenta, setShow: setShowMagenta },
+                { label: "Yellow", color: yellowInk, setColor: setYellowInk, alpha: yellowAlpha, setAlpha: setYellowAlpha, show: showYellow, setShow: setShowYellow },
+                { label: "Black", color: blackInk, setColor: setBlackInk, alpha: blackAlpha, setAlpha: setBlackAlpha, show: showBlack, setShow: setShowBlack },
+              ] as const).map(({ label, color, setColor, alpha, setAlpha, show, setShow }) => (
+                <div
+                  key={label}
+                  className="flex items-center"
+                  style={{ gap: '8px', padding: '5px 0', opacity: show ? 1 : 0.45 }}
+                >
+                  <span className="text-xs" style={{ width: '52px', flexShrink: 0 }}>{label}</span>
+                  <ColorPicker value={color} onChange={setColor} className="w-8 h-8" style={{ borderRadius: 0 }} />
+                  <span className="text-xs text-muted-foreground" style={{ flex: 1, minWidth: 0, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
+                    {color.slice(1).toUpperCase()}
                   </span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Magenta</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={magentaInk} onChange={setMagentaInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {magentaInk.toUpperCase()}
+                  <span className="text-xs text-muted-foreground" style={{ width: '34px', textAlign: 'right', fontFamily: 'monospace' }}>
+                    {Math.round(alpha[0] * 100)}%
                   </span>
+                  <Slider
+                    value={alpha}
+                    onValueChange={setAlpha}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    style={{ width: '48px', flexShrink: 0 }}
+                  />
+                  <button
+                    onClick={() => setShow(!show)}
+                    className="cursor-pointer"
+                    style={{ padding: '2px', background: 'none', border: 'none', opacity: show ? 0.7 : 0.35, flexShrink: 0 }}
+                    title={show ? `Hide ${label}` : `Show ${label}`}
+                  >
+                    {show ? <Eye style={{ width: '14px', height: '14px' }} /> : <EyeOff style={{ width: '14px', height: '14px' }} />}
+                  </button>
                 </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Yellow</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={yellowInk} onChange={setYellowInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {yellowInk.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <Label className="text-xs text-center">Black</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={blackInk} onChange={setBlackInk} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {blackInk.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center space-y-2 col-span-2 pt-4">
-                <Label className="text-xs text-center">Paper Color</Label>
-                <div className="flex flex-col items-center gap-2">
-                  <ColorPicker value={paperColor} onChange={setPaperColor} />
-                  <span className="text-xs text-muted-foreground text-center">
-                    {paperColor.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+              ))}
 
-        {/* Layer Visibility */}
-        <AccordionItem value="layer-visibility" className="">
-          <AccordionTrigger className="text-lg uppercase items-center">
-            Layer Visibility
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-3 pt-2 pb-6">
-              <div className="flex items-center space-x-2">
-                <Checkbox id="cyan" checked={showCyan} onCheckedChange={setShowCyan} />
-                <Label htmlFor="cyan" className="text-sm text-cyan-600">
-                  Cyan
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="magenta" checked={showMagenta} onCheckedChange={setShowMagenta} />
-                <Label htmlFor="magenta" className="text-sm text-pink-600">
-                  Magenta
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="yellow" checked={showYellow} onCheckedChange={setShowYellow} />
-                <Label htmlFor="yellow" className="text-sm text-yellow-600">
-                  Yellow
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="black" checked={showBlack} onCheckedChange={setShowBlack} />
-                <Label htmlFor="black" className="text-sm text-gray-800">
-                  Black
-                </Label>
+              {/* Separator */}
+              <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
+
+              {/* Paper / Background row */}
+              <div
+                className="flex items-center"
+                style={{ gap: '8px', padding: '5px 0' }}
+              >
+                <span className="text-xs" style={{ width: '52px', flexShrink: 0 }}>Paper</span>
+                <ColorPicker value={paperColor} onChange={setPaperColor} className="w-8 h-8" style={{ borderRadius: 0 }} />
+                <span className="text-xs text-muted-foreground" style={{ flex: 1, minWidth: 0, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
+                  {paperColor.slice(1).toUpperCase()}
+                </span>
+                <span className="text-xs text-muted-foreground" style={{ width: '34px', textAlign: 'right', fontFamily: 'monospace' }}>
+                  {Math.round(paperAlpha[0] * 100)}%
+                </span>
+                <Slider
+                  value={paperAlpha}
+                  onValueChange={setPaperAlpha}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  style={{ width: '48px', flexShrink: 0 }}
+                />
+                {/* Static eye icon (paper is always visible) */}
+                <span style={{ padding: '2px', opacity: 0.35, flexShrink: 0 }}>
+                  <Eye style={{ width: '14px', height: '14px' }} />
+                </span>
               </div>
             </div>
           </AccordionContent>
