@@ -65,11 +65,55 @@ export interface HalftoneSettings {
   showBlack: boolean;
 }
 
+export interface PresetValues {
+  frequency: number;
+  dotSize: number;
+  roughness: number;
+  fuzz: number;
+  paperNoise: number;
+  inkNoise: number;
+  randomness: number;
+  contrast: number;
+  lightness: number;
+  blur: number;
+  threshold: number;
+  blendMode: number;
+  cyanAngle: number;
+  magentaAngle: number;
+  yellowAngle: number;
+  blackAngle: number;
+  cyanInk: string;
+  cyanAlpha: number;
+  magentaInk: string;
+  magentaAlpha: number;
+  yellowInk: string;
+  yellowAlpha: number;
+  blackInk: string;
+  blackAlpha: number;
+  paperColor: string;
+  paperAlpha: number;
+  showCyan: boolean;
+  showMagenta: boolean;
+  showYellow: boolean;
+  showBlack: boolean;
+}
+
+export interface Preset {
+  id: string;
+  name: string;
+  values: PresetValues;
+}
+
 export interface PluginMessage {
   type: string;
   imageData?: Uint8Array;
   width?: number;
   height?: number;
   message?: string;
+  presets?: Preset[];
+  preset?: Preset;
+  presetId?: string;
+  presetName?: string;
+  presetValues?: PresetValues;
 }
 

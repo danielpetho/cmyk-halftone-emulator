@@ -24,6 +24,8 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { VideoControlsProps } from "./VideoControls";
+import { PresetSelector } from "./PresetSelector";
+import type { PresetValues } from "../lib/presets";
 
 export interface HalftoneSettings {
   // General settings
@@ -110,6 +112,9 @@ interface HalftoneControlsProps {
   previewVideoUrl?: string | null;
   showOriginalMedia?: boolean;
   videoControls?: VideoControlsProps;
+  getCurrentValues?: () => PresetValues;
+  applyPresetValues?: (v: PresetValues) => void;
+  onResetDefaults?: () => void;
 }
 
 export function HalftoneControls({
@@ -119,6 +124,9 @@ export function HalftoneControls({
   previewVideoUrl,
   showOriginalMedia = true,
   videoControls,
+  getCurrentValues,
+  applyPresetValues,
+  onResetDefaults,
 }: HalftoneControlsProps) {
   const {
     frequency,
@@ -185,6 +193,8 @@ export function HalftoneControls({
 
   // Build default open accordions based on what's available
   const defaultOpenSections = [
+    "preset",
+    "blend-mode",
     "halftone-settings",
     "ink-colors",
   ];
@@ -195,6 +205,38 @@ export function HalftoneControls({
   return (
     <TooltipProvider>
       <Accordion type="multiple" defaultValue={defaultOpenSections}>
+        {/* Preset */}
+        {getCurrentValues && applyPresetValues && onResetDefaults && (
+          <AccordionItem value="preset" className="">
+            <AccordionTrigger className="text-lg uppercase items-center">
+              Presets
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2 pb-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1">
+                    <Label className="text-sm">Preset</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Save and load your halftone settings as presets.</p>
+                        <p>Presets are stored locally in your browser.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <PresetSelector
+                    getCurrentValues={getCurrentValues}
+                    applyValues={applyPresetValues}
+                    onResetDefaults={onResetDefaults}
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
         {/* Video Controls - only visible for videos */}
         {isVideo && videoControls && (
           <AccordionItem value="video-controls" className="">
@@ -332,16 +374,16 @@ export function HalftoneControls({
           </AccordionItem>
         )}
 
-        {/* Halftone Settings */}
-        <AccordionItem value="halftone-settings" className="">
+        {/* Blend Mode */}
+        <AccordionItem value="blend-mode" className="">
           <AccordionTrigger className="text-lg uppercase items-center">
-            Halftone Settings
+            Blend Mode
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-4 pt-2 pb-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
-                  <Label className="text-sm">Blend Mode</Label>
+                  <Label className="text-sm">Mode</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground cursor-help" />
@@ -367,79 +409,17 @@ export function HalftoneControls({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-sm">Contrast: {contrast[0].toFixed(2)}</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Adjusts the tonal range of the image before halftone processing</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider
-                  value={contrast}
-                  onValueChange={setContrast}
-                  min={0.3}
-                  max={2.0}
-                  step={0.01}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-sm">Lightness: {lightness[0].toFixed(2)}</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Adjusts the overall brightness of the image before halftone processing</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider
-                  value={lightness}
-                  onValueChange={setLightness}
-                  min={-0.5}
-                  max={0.5}
-                  step={0.01}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-sm">Blur (Pre-filter): {blur[0].toFixed(1)}px</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Softens edges before halftone processing to reduce harsh cutoffs</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider value={blur} onValueChange={setBlur} min={0} max={30.0} step={0.1} />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-sm">Threshold (Cutoff): {threshold[0].toFixed(2)}</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Eliminates small dots below this value to remove artifacts (0.05-0.15 recommended)</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider value={threshold} onValueChange={setThreshold} min={0} max={0.5} step={0.01} />
-              </div>
-
+        {/* Halftone Settings */}
+        <AccordionItem value="halftone-settings" className="">
+          <AccordionTrigger className="text-lg uppercase items-center">
+            Halftone Settings
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-4 pt-2 pb-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
                   <Label className="text-sm">Frequency: {frequency[0]}</Label>
@@ -502,6 +482,113 @@ export function HalftoneControls({
 
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
+                  <Label className="text-sm">Dot Randomness: {randomness[0].toFixed(2)}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Randomly shifts dot positions to break up regular grid patterns</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Slider value={randomness} onValueChange={setRandomness} min={0} max={0.4} step={0.05} />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-sm">Threshold (Cutoff): {threshold[0].toFixed(2)}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Eliminates small dots below this value to remove artifacts (0.05-0.15 recommended)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Slider value={threshold} onValueChange={setThreshold} min={0} max={0.5} step={0.01} />
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Image (Pre-filtering) */}
+        <AccordionItem value="image-prefilter" className="">
+          <AccordionTrigger className="text-lg uppercase items-center">
+            Image (Pre-filtering)
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-4 pt-2 pb-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-sm">Contrast: {contrast[0].toFixed(2)}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Adjusts the tonal range of the image before halftone processing</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Slider
+                  value={contrast}
+                  onValueChange={setContrast}
+                  min={0.3}
+                  max={2.0}
+                  step={0.01}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-sm">Lightness: {lightness[0].toFixed(2)}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Adjusts the overall brightness of the image before halftone processing</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Slider
+                  value={lightness}
+                  onValueChange={setLightness}
+                  min={-0.5}
+                  max={0.5}
+                  step={0.01}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-sm">Blur: {blur[0].toFixed(1)}px</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Softens edges before halftone processing to reduce harsh cutoffs</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Slider value={blur} onValueChange={setBlur} min={0} max={30.0} step={0.1} />
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Noise & Texture */}
+        <AccordionItem value="noise-texture" className="">
+          <AccordionTrigger className="text-lg uppercase items-center">
+            Noise & Texture
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-4 pt-2 pb-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
                   <Label className="text-sm">Paper Noise: {paperNoise[0].toFixed(2)}</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -528,21 +615,6 @@ export function HalftoneControls({
                   </Tooltip>
                 </div>
                 <Slider value={inkNoise} onValueChange={setInkNoise} min={0} max={1} step={0.05} />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-sm">Dot Randomness: {randomness[0].toFixed(2)}</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Randomly shifts dot positions to break up regular grid patterns</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider value={randomness} onValueChange={setRandomness} min={0} max={0.4} step={0.05} />
               </div>
             </div>
           </AccordionContent>

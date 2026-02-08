@@ -97,11 +97,43 @@ async function sendSelectedImage() {
   }
 }
 
+const PRESETS_STORAGE_KEY = 'halftone-presets';
+
 figma.ui.onmessage = async (msg: PluginMessage) => {
   switch (msg.type) {
     case 'get-selection':
       await sendSelectedImage();
       break;
+
+    case 'load-presets': {
+      const presets = await figma.clientStorage.getAsync(PRESETS_STORAGE_KEY) || [];
+      figma.ui.postMessage({ type: 'presets-loaded', presets });
+      break;
+    }
+
+    case 'save-preset': {
+      if (!msg.presetName || !msg.presetValues) break;
+      const existing = await figma.clientStorage.getAsync(PRESETS_STORAGE_KEY) || [];
+      const preset = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name: msg.presetName,
+        values: msg.presetValues,
+      };
+      existing.push(preset);
+      await figma.clientStorage.setAsync(PRESETS_STORAGE_KEY, existing);
+      figma.ui.postMessage({ type: 'presets-loaded', presets: existing });
+      figma.ui.postMessage({ type: 'preset-saved', preset });
+      break;
+    }
+
+    case 'delete-preset': {
+      if (!msg.presetId) break;
+      const current = await figma.clientStorage.getAsync(PRESETS_STORAGE_KEY) || [];
+      const updated = current.filter((p: { id: string }) => p.id !== msg.presetId);
+      await figma.clientStorage.setAsync(PRESETS_STORAGE_KEY, updated);
+      figma.ui.postMessage({ type: 'presets-loaded', presets: updated });
+      break;
+    }
 
     case 'apply-halftone':
       if (!msg.imageData || !msg.width || !msg.height) {

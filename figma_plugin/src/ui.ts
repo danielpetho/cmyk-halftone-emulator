@@ -1,6 +1,6 @@
 import { HalftoneRenderer } from './webgl';
-import { setupControls, getSettings, resetDefaults } from './controls';
-import type { PluginMessage } from './constants';
+import { setupControls, getSettings, resetDefaults, getCurrentValues, applyPresetValues, populatePresetSelect } from './controls';
+import type { PluginMessage, Preset } from './constants';
 
 const canvas = document.getElementById('preview-canvas') as HTMLCanvasElement;
 const canvasContainer = document.getElementById('canvas-container') as HTMLElement;
@@ -88,6 +88,127 @@ function render(): void {
   }
 }
 
+// Preset state
+let presets: Preset[] = [];
+
+const presetSelect = document.getElementById('presetSelect') as HTMLSelectElement;
+const savePresetBtn = document.getElementById('savePresetBtn') as HTMLButtonElement;
+const deletePresetBtn = document.getElementById('deletePresetBtn') as HTMLButtonElement;
+const savePresetModal = document.getElementById('save-preset-modal') as HTMLElement;
+const presetNameInput = document.getElementById('presetNameInput') as HTMLInputElement;
+const confirmSavePresetBtn = document.getElementById('confirmSavePresetBtn') as HTMLButtonElement;
+const cancelSavePresetBtn = document.getElementById('cancelSavePresetBtn') as HTMLButtonElement;
+const closeSavePresetModal = document.getElementById('closeSavePresetModal') as HTMLButtonElement;
+const deletePresetModal = document.getElementById('delete-preset-modal') as HTMLElement;
+const deletePresetNameEl = document.getElementById('deletePresetName') as HTMLElement;
+const confirmDeletePresetBtn = document.getElementById('confirmDeletePresetBtn') as HTMLButtonElement;
+const cancelDeletePresetBtn = document.getElementById('cancelDeletePresetBtn') as HTMLButtonElement;
+const closeDeletePresetModal = document.getElementById('closeDeletePresetModal') as HTMLButtonElement;
+
+function showSavePresetModal(): void {
+  savePresetModal.style.display = 'flex';
+  presetNameInput.value = '';
+  setTimeout(() => presetNameInput.focus(), 50);
+}
+
+function hideSavePresetModal(): void {
+  savePresetModal.style.display = 'none';
+}
+
+function showDeletePresetModal(): void {
+  const id = presetSelect.value;
+  if (id === '__default__') return;
+  const preset = presets.find(p => p.id === id);
+  if (!preset) return;
+  deletePresetNameEl.textContent = '"' + preset.name + '"?';
+  deletePresetModal.style.display = 'flex';
+}
+
+function hideDeletePresetModal(): void {
+  deletePresetModal.style.display = 'none';
+}
+
+function setupPresets(): void {
+  // Load presets from Figma clientStorage
+  parent.postMessage({ pluginMessage: { type: 'load-presets' } }, '*');
+
+  presetSelect.addEventListener('change', () => {
+    const id = presetSelect.value;
+    if (id === '__default__') {
+      resetDefaults(render);
+    } else {
+      const preset = presets.find(p => p.id === id);
+      if (preset) {
+        applyPresetValues(preset.values, render);
+      }
+    }
+    deletePresetBtn.disabled = (id === '__default__');
+  });
+
+  savePresetBtn.addEventListener('click', showSavePresetModal);
+
+  cancelSavePresetBtn.addEventListener('click', hideSavePresetModal);
+  closeSavePresetModal.addEventListener('click', hideSavePresetModal);
+
+  // Close modal when clicking overlay
+  savePresetModal.addEventListener('click', function(e: MouseEvent) {
+    if (e.target === savePresetModal) {
+      hideSavePresetModal();
+    }
+  });
+
+  confirmSavePresetBtn.addEventListener('click', () => {
+    const name = presetNameInput.value.trim();
+    if (!name) return;
+
+    const values = getCurrentValues();
+    parent.postMessage({
+      pluginMessage: {
+        type: 'save-preset',
+        presetName: name,
+        presetValues: values,
+      }
+    }, '*');
+    hideSavePresetModal();
+  });
+
+  presetNameInput.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      confirmSavePresetBtn.click();
+    } else if (e.key === 'Escape') {
+      hideSavePresetModal();
+    }
+  });
+
+  deletePresetBtn.addEventListener('click', showDeletePresetModal);
+
+  cancelDeletePresetBtn.addEventListener('click', hideDeletePresetModal);
+  closeDeletePresetModal.addEventListener('click', hideDeletePresetModal);
+
+  deletePresetModal.addEventListener('click', function(e: MouseEvent) {
+    if (e.target === deletePresetModal) {
+      hideDeletePresetModal();
+    }
+  });
+
+  confirmDeletePresetBtn.addEventListener('click', () => {
+    const id = presetSelect.value;
+    if (id === '__default__') return;
+
+    parent.postMessage({
+      pluginMessage: {
+        type: 'delete-preset',
+        presetId: id,
+      }
+    }, '*');
+    hideDeletePresetModal();
+    // Switch back to default
+    presetSelect.value = '__default__';
+    deletePresetBtn.disabled = true;
+    resetDefaults(render);
+  });
+}
+
 async function applyHalftone(): Promise<void> {
   if (!renderer.isImageLoaded) return;
 
@@ -152,6 +273,18 @@ async function handleMessage(msg: PluginMessage): Promise<void> {
 
     case 'error':
       showMessage('Error', msg.message || 'An error occurred.');
+      break;
+
+    case 'presets-loaded':
+      presets = msg.presets || [];
+      populatePresetSelect(presets, presetSelect.value !== '__default__' ? presetSelect.value : undefined);
+      break;
+
+    case 'preset-saved':
+      if (msg.preset) {
+        presetSelect.value = msg.preset.id;
+        deletePresetBtn.disabled = false;
+      }
       break;
   }
 }
@@ -288,6 +421,7 @@ function init(): void {
   }
 
   setupControls(render);
+  setupPresets();
   setupZoomPanHandlers();
   setupResizeObserver();
   setupWindowResize();
@@ -301,7 +435,11 @@ function init(): void {
 
   (window as any).applyHalftone = applyHalftone;
   (window as any).cancel = cancel;
-  (window as any).resetDefaults = function() { resetDefaults(render); };
+  (window as any).resetDefaults = function() {
+    resetDefaults(render);
+    presetSelect.value = '__default__';
+    deletePresetBtn.disabled = true;
+  };
   (window as any).showAbout = showAbout;
   (window as any).hideAbout = hideAbout;
 

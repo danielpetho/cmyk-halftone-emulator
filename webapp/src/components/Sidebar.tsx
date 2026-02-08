@@ -2,6 +2,7 @@ import { Button } from "./ui/button";
 import { Download, RotateCcw, ImagePlus } from "lucide-react";
 import { HalftoneControls, HalftoneSettings } from "./HalftoneControls";
 import { VideoControlsProps } from "./VideoControls";
+import type { PresetValues } from "../lib/presets";
 
 interface SidebarProps {
   settings: HalftoneSettings;
@@ -13,6 +14,8 @@ interface SidebarProps {
   onSwapMedia: () => void;
   onDownload: () => void;
   videoControls?: VideoControlsProps;
+  getCurrentValues: () => PresetValues;
+  applyPresetValues: (v: PresetValues) => void;
 }
 
 export function Sidebar({
@@ -25,6 +28,8 @@ export function Sidebar({
   onSwapMedia,
   onDownload,
   videoControls,
+  getCurrentValues,
+  applyPresetValues,
 }: SidebarProps) {
   return (
     <div className="h-screen flex flex-col w-[320px]!">
@@ -40,7 +45,6 @@ export function Sidebar({
 
         </button>
 
-
       {/* Scrollable accordion controls */}
       <div className="flex-1 overflow-y-auto min-h-0">
         <HalftoneControls
@@ -49,6 +53,9 @@ export function Sidebar({
           isVideo={isVideo}
           previewVideoUrl={previewVideoUrl}
           videoControls={videoControls}
+          getCurrentValues={getCurrentValues}
+          applyPresetValues={applyPresetValues}
+          onResetDefaults={onResetDefaults}
         />
       </div>
 

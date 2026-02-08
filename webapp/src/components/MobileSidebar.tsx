@@ -2,6 +2,7 @@ import { Button } from "./ui/button";
 import { Download, RotateCcw, ImagePlus } from "lucide-react";
 import { HalftoneControls, HalftoneSettings } from "./HalftoneControls";
 import { VideoControlsProps } from "./VideoControls";
+import type { PresetValues } from "../lib/presets";
 
 interface MobileSidebarProps {
   settings: HalftoneSettings;
@@ -13,6 +14,8 @@ interface MobileSidebarProps {
   onSwapMedia: () => void;
   onDownload: () => void;
   videoControls?: VideoControlsProps;
+  getCurrentValues: () => PresetValues;
+  applyPresetValues: (v: PresetValues) => void;
 }
 
 export function MobileSidebar({
@@ -25,6 +28,8 @@ export function MobileSidebar({
   onSwapMedia,
   onDownload,
   videoControls,
+  getCurrentValues,
+  applyPresetValues,
 }: MobileSidebarProps) {
   return (
     <div className="h-full flex flex-col">
@@ -37,6 +42,9 @@ export function MobileSidebar({
           previewVideoUrl={previewVideoUrl}
           showOriginalMedia={false}
           videoControls={videoControls}
+          getCurrentValues={getCurrentValues}
+          applyPresetValues={applyPresetValues}
+          onResetDefaults={onResetDefaults}
         />
       </div>
 

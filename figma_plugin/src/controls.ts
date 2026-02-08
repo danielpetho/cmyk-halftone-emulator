@@ -1,4 +1,4 @@
-import { DEFAULTS, type HalftoneSettings } from './constants';
+import { DEFAULTS, type HalftoneSettings, type Preset, type PresetValues } from './constants';
 
 type RenderCallback = () => void;
 
@@ -317,5 +317,155 @@ export function resetDefaults(onRender: RenderCallback): void {
   updateValueDisplay('blackAngle', DEFAULTS.blackAngle, '°');
 
   onRender();
+}
+
+// Extract current UI values as a PresetValues object
+export function getCurrentValues(): PresetValues {
+  return {
+    frequency: getInputValue('frequency') as number,
+    dotSize: getInputValue('dotSize') as number,
+    roughness: getInputValue('roughness') as number,
+    fuzz: getInputValue('fuzz') as number,
+    paperNoise: getInputValue('paperNoise') as number,
+    inkNoise: getInputValue('inkNoise') as number,
+    randomness: getInputValue('randomness') as number,
+    contrast: getInputValue('contrast') as number,
+    lightness: getInputValue('lightness') as number,
+    blur: getInputValue('blur') as number,
+    threshold: getInputValue('threshold') as number,
+    blendMode: getInputValue('blendMode') as number,
+    cyanAngle: getInputValue('cyanAngle') as number,
+    magentaAngle: getInputValue('magentaAngle') as number,
+    yellowAngle: getInputValue('yellowAngle') as number,
+    blackAngle: getInputValue('blackAngle') as number,
+    cyanInk: getInputValue('cyanInk', 'string') as string,
+    cyanAlpha: getAlphaValue('cyanAlpha'),
+    magentaInk: getInputValue('magentaInk', 'string') as string,
+    magentaAlpha: getAlphaValue('magentaAlpha'),
+    yellowInk: getInputValue('yellowInk', 'string') as string,
+    yellowAlpha: getAlphaValue('yellowAlpha'),
+    blackInk: getInputValue('blackInk', 'string') as string,
+    blackAlpha: getAlphaValue('blackAlpha'),
+    paperColor: getInputValue('paperColor', 'string') as string,
+    paperAlpha: getAlphaValue('paperAlpha'),
+    showCyan: getInputValue('showCyan', 'boolean') as boolean,
+    showMagenta: getInputValue('showMagenta', 'boolean') as boolean,
+    showYellow: getInputValue('showYellow', 'boolean') as boolean,
+    showBlack: getInputValue('showBlack', 'boolean') as boolean,
+  };
+}
+
+// Apply preset values to the UI controls
+export function applyPresetValues(v: PresetValues, onRender: RenderCallback): void {
+  const setInput = (id: string, value: string | number | boolean) => {
+    const el = $(id) as HTMLInputElement | null;
+    if (!el) return;
+    if (typeof value === 'boolean') {
+      el.checked = value;
+    } else {
+      el.value = String(value);
+    }
+  };
+
+  setInput('frequency', v.frequency);
+  setInput('dotSize', v.dotSize);
+  setInput('roughness', v.roughness);
+  setInput('fuzz', v.fuzz);
+  setInput('paperNoise', v.paperNoise);
+  setInput('inkNoise', v.inkNoise);
+  setInput('randomness', v.randomness);
+  setInput('contrast', v.contrast);
+  setInput('lightness', v.lightness);
+  setInput('blur', v.blur);
+  setInput('threshold', v.threshold);
+  setInput('blendMode', v.blendMode);
+
+  setInput('cyanAngle', v.cyanAngle);
+  setInput('magentaAngle', v.magentaAngle);
+  setInput('yellowAngle', v.yellowAngle);
+  setInput('blackAngle', v.blackAngle);
+
+  setInput('cyanInk', v.cyanInk);
+  setInput('cyanInk-text', v.cyanInk.slice(1).toUpperCase());
+  setInput('cyanAlpha', Math.round(v.cyanAlpha * 100));
+
+  setInput('magentaInk', v.magentaInk);
+  setInput('magentaInk-text', v.magentaInk.slice(1).toUpperCase());
+  setInput('magentaAlpha', Math.round(v.magentaAlpha * 100));
+
+  setInput('yellowInk', v.yellowInk);
+  setInput('yellowInk-text', v.yellowInk.slice(1).toUpperCase());
+  setInput('yellowAlpha', Math.round(v.yellowAlpha * 100));
+
+  setInput('blackInk', v.blackInk);
+  setInput('blackInk-text', v.blackInk.slice(1).toUpperCase());
+  setInput('blackAlpha', Math.round(v.blackAlpha * 100));
+
+  setInput('paperColor', v.paperColor);
+  setInput('paperColor-text', v.paperColor.slice(1).toUpperCase());
+  setInput('paperAlpha', Math.round(v.paperAlpha * 100));
+
+  // Visibility toggles
+  const setVisibility = (id: string, visible: boolean) => {
+    const el = $(id);
+    if (el) {
+      if (visible) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    }
+  };
+  setVisibility('showCyan', v.showCyan);
+  setVisibility('showMagenta', v.showMagenta);
+  setVisibility('showYellow', v.showYellow);
+  setVisibility('showBlack', v.showBlack);
+
+  // Update displays
+  updateValueDisplay('frequency', v.frequency);
+  updateValueDisplay('dotSize', v.dotSize.toFixed(2));
+  updateValueDisplay('roughness', v.roughness.toFixed(1));
+  updateValueDisplay('fuzz', v.fuzz.toFixed(2));
+  updateValueDisplay('paperNoise', v.paperNoise.toFixed(2));
+  updateValueDisplay('inkNoise', v.inkNoise.toFixed(2));
+  updateValueDisplay('randomness', v.randomness.toFixed(2));
+  updateValueDisplay('contrast', v.contrast.toFixed(2));
+  updateValueDisplay('lightness', v.lightness.toFixed(2));
+  updateValueDisplay('blur', v.blur.toFixed(1));
+  updateValueDisplay('threshold', v.threshold.toFixed(2));
+  updateValueDisplay('cyanAngle', v.cyanAngle, '°');
+  updateValueDisplay('magentaAngle', v.magentaAngle, '°');
+  updateValueDisplay('yellowAngle', v.yellowAngle, '°');
+  updateValueDisplay('blackAngle', v.blackAngle, '°');
+
+  onRender();
+}
+
+// Populate the preset <select> dropdown
+export function populatePresetSelect(presets: Preset[], selectedId?: string): void {
+  const select = $('presetSelect') as HTMLSelectElement | null;
+  if (!select) return;
+
+  // Clear existing options except the default
+  while (select.options.length > 1) {
+    select.remove(1);
+  }
+
+  presets.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    select.appendChild(opt);
+  });
+
+  if (selectedId) {
+    select.value = selectedId;
+  }
+
+  // Enable/disable delete button
+  const deleteBtn = $('deletePresetBtn') as HTMLButtonElement | null;
+  if (deleteBtn) {
+    deleteBtn.disabled = (select.value === '__default__');
+  }
 }
 

@@ -163,13 +163,13 @@ body {
   z-index: 9999;
 }
 
-/* First tooltip (Blend Mode at top) should appear below */
-.section:first-child .tooltip::after {
+/* Top sections tooltips should appear below to avoid clipping */
+.section:nth-child(-n+2) .tooltip::after {
   bottom: auto;
   top: calc(100% + 8px);
 }
 
-.section:first-child .tooltip::before {
+.section:nth-child(-n+2) .tooltip::before {
   bottom: auto;
   top: calc(100% + 2px);
   border-top-color: transparent;
@@ -721,9 +721,14 @@ select:focus {
   transition: all 0.1s ease;
 }
 
-.btn-icon:hover {
+.btn-icon:hover:not(:disabled) {
   background: var(--bg-tertiary);
   color: var(--text-primary);
+}
+
+.btn-icon:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* Modal */

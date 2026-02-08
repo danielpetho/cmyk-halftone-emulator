@@ -9,6 +9,7 @@ import { useIsMobile } from "./ui/use-mobile";
 import { Sidebar } from "./Sidebar";
 import { MobileSidebar } from "./MobileSidebar";
 import { HalftoneSettings } from "./HalftoneControls";
+import type { PresetValues } from "../lib/presets";
 import { ZoomControls } from "./ZoomControls";
 
 interface WebGLHalftoneProcessorProps {
@@ -216,6 +217,82 @@ export function WebGLHalftoneProcessor({
     setShowMagenta(DEFAULTS.showMagenta);
     setShowYellow(DEFAULTS.showYellow);
     setShowBlack(DEFAULTS.showBlack);
+  }, []);
+
+  // Extract current values as a PresetValues object
+  const getCurrentValues = useCallback((): PresetValues => ({
+    frequency,
+    dotSize,
+    roughness,
+    fuzz,
+    paperNoise,
+    inkNoise,
+    randomness,
+    contrast,
+    lightness,
+    blur,
+    threshold,
+    blendMode,
+    cyanAngle,
+    magentaAngle,
+    yellowAngle,
+    blackAngle,
+    cyanInk,
+    cyanAlpha,
+    magentaInk,
+    magentaAlpha,
+    yellowInk,
+    yellowAlpha,
+    blackInk,
+    blackAlpha,
+    paperColor,
+    paperAlpha,
+    showCyan,
+    showMagenta,
+    showYellow,
+    showBlack,
+  }), [
+    frequency, dotSize, roughness, fuzz, paperNoise, inkNoise,
+    randomness, contrast, lightness, blur, threshold, blendMode,
+    cyanAngle, magentaAngle, yellowAngle, blackAngle,
+    cyanInk, cyanAlpha, magentaInk, magentaAlpha,
+    yellowInk, yellowAlpha, blackInk, blackAlpha,
+    paperColor, paperAlpha,
+    showCyan, showMagenta, showYellow, showBlack,
+  ]);
+
+  // Apply preset values to all state
+  const applyPresetValues = useCallback((v: PresetValues) => {
+    setFrequency(v.frequency);
+    setDotSize(v.dotSize);
+    setRoughness(v.roughness);
+    setFuzz(v.fuzz);
+    setPaperNoise(v.paperNoise);
+    setInkNoise(v.inkNoise);
+    setRandomness(v.randomness);
+    setContrast(v.contrast);
+    setLightness(v.lightness);
+    setBlur(v.blur);
+    setThreshold(v.threshold);
+    setBlendMode(v.blendMode);
+    setCyanAngle(v.cyanAngle);
+    setMagentaAngle(v.magentaAngle);
+    setYellowAngle(v.yellowAngle);
+    setBlackAngle(v.blackAngle);
+    setCyanInk(v.cyanInk);
+    setCyanAlpha(v.cyanAlpha);
+    setMagentaInk(v.magentaInk);
+    setMagentaAlpha(v.magentaAlpha);
+    setYellowInk(v.yellowInk);
+    setYellowAlpha(v.yellowAlpha);
+    setBlackInk(v.blackInk);
+    setBlackAlpha(v.blackAlpha);
+    setPaperColor(v.paperColor);
+    setPaperAlpha(v.paperAlpha);
+    setShowCyan(v.showCyan);
+    setShowMagenta(v.showMagenta);
+    setShowYellow(v.showYellow);
+    setShowBlack(v.showBlack);
   }, []);
 
   // Handle file swap
@@ -1651,6 +1728,8 @@ export function WebGLHalftoneProcessor({
               onSwapMedia={triggerSwapMedia}
               onDownload={handleDownload}
               videoControls={videoControlsProps}
+              getCurrentValues={getCurrentValues}
+              applyPresetValues={applyPresetValues}
             />
           </div>
         </div>
@@ -1669,6 +1748,8 @@ export function WebGLHalftoneProcessor({
               onSwapMedia={triggerSwapMedia}
               onDownload={handleDownload}
               videoControls={videoControlsProps}
+              getCurrentValues={getCurrentValues}
+              applyPresetValues={applyPresetValues}
             />
           </div>
 
