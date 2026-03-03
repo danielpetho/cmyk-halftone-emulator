@@ -1,6 +1,7 @@
 import { HalftoneRenderer } from './webgl';
 import { setupControls, getSettings, resetDefaults, getCurrentValues, applyPresetValues, populatePresetSelect } from './controls';
 import type { PluginMessage, Preset } from './constants';
+import { initI18n, toggleLanguage, t } from './i18n';
 
 const canvas = document.getElementById('preview-canvas') as HTMLCanvasElement;
 const canvasContainer = document.getElementById('canvas-container') as HTMLElement;
@@ -37,7 +38,7 @@ let lastMouseY = 0;
 
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 5;
-const ZOOM_STEP = 0.1; 
+const ZOOM_STEP = 0.1;
 
 function updateZoomDisplay(): void {
   const percent = Math.round(zoom * 100);
@@ -47,7 +48,7 @@ function updateZoomDisplay(): void {
 }
 
 function updateCanvasTransform(): void {
-  canvasWrapper.style.transform = 
+  canvasWrapper.style.transform =
     'translate(-50%, -50%) translate(' + panX + 'px, ' + panY + 'px) scale(' + zoom + ')';
 }
 
@@ -65,19 +66,19 @@ function zoomOut(): void {
 
 function fitToView(): void {
   if (!renderer.isImageLoaded) return;
-  
+
   const containerWidth = canvasContainer.clientWidth - 40;
   const containerHeight = canvasContainer.clientHeight - 40;
   const canvasWidth = canvas.width;
   const canvasHeight = canvas.height;
-  
+
   const scaleX = containerWidth / canvasWidth;
   const scaleY = containerHeight / canvasHeight;
   zoom = Math.min(scaleX, scaleY, MAX_ZOOM);
   zoom = Math.max(zoom, MIN_ZOOM);
   panX = 0;
   panY = 0;
-  
+
   updateZoomDisplay();
   updateCanvasTransform();
 }
@@ -151,7 +152,7 @@ function setupPresets(): void {
   closeSavePresetModal.addEventListener('click', hideSavePresetModal);
 
   // Close modal when clicking overlay
-  savePresetModal.addEventListener('click', function(e: MouseEvent) {
+  savePresetModal.addEventListener('click', function (e: MouseEvent) {
     if (e.target === savePresetModal) {
       hideSavePresetModal();
     }
@@ -185,7 +186,7 @@ function setupPresets(): void {
   cancelDeletePresetBtn.addEventListener('click', hideDeletePresetModal);
   closeDeletePresetModal.addEventListener('click', hideDeletePresetModal);
 
-  deletePresetModal.addEventListener('click', function(e: MouseEvent) {
+  deletePresetModal.addEventListener('click', function (e: MouseEvent) {
     if (e.target === deletePresetModal) {
       hideDeletePresetModal();
     }
@@ -213,12 +214,12 @@ async function applyHalftone(): Promise<void> {
   if (!renderer.isImageLoaded) return;
 
   render();
-  
+
   try {
     const blob = await renderer.getImageBlob();
     const arrayBuffer = await blob.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-    
+
     parent.postMessage({
       pluginMessage: {
         type: 'apply-halftone',
@@ -236,11 +237,13 @@ function cancel(): void {
   parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
 }
 
-function showMessage(title: string, message: string): void {
+function showMessage(title: string, message: string, titleKey?: string, messageKey?: string): void {
   loading.style.display = 'none';
   canvasContainer.style.display = 'none';
   zoomControls.style.display = 'none';
-  emptyState.innerHTML = '<h2>' + title + '</h2><p>' + message + '</p>';
+  const titleAttr = titleKey ? ` data-i18n="${titleKey}"` : '';
+  const msgAttr = messageKey ? ` data-i18n="${messageKey}"` : '';
+  emptyState.innerHTML = '<h2' + titleAttr + '>' + title + '</h2><p' + msgAttr + '>' + message + '</p>';
   emptyState.style.display = 'block';
 }
 
@@ -248,31 +251,31 @@ async function handleMessage(msg: PluginMessage): Promise<void> {
   switch (msg.type) {
     case 'image-data':
       if (!msg.imageData) return;
-      
+
       try {
         loading.style.display = 'block';
         emptyState.style.display = 'none';
-        
+
         const img = await renderer.loadImageFromBytes(msg.imageData);
         renderer.setupTexture(img);
         render();
-        
+
         canvasContainer.style.display = 'block';
         zoomControls.style.display = 'flex';
         loading.style.display = 'none';
-        
+
         fitToView();
       } catch (error) {
-        showMessage('Error loading image', (error as Error).message);
+        showMessage(t('msg.errorLoadingImage'), (error as Error).message, 'msg.errorLoadingImage');
       }
       break;
 
     case 'no-selection':
-      showMessage('Select an image', msg.message || 'Please select an image or shape with an image fill.');
+      showMessage(t('msg.selectImage'), t('msg.pleaseSelect'), 'msg.selectImage', 'msg.pleaseSelect');
       break;
 
     case 'error':
-      showMessage('Error', msg.message || 'An error occurred.');
+      showMessage(t('msg.error'), t('msg.errorOccurred'), 'msg.error', 'msg.errorOccurred');
       break;
 
     case 'presets-loaded':
@@ -293,26 +296,26 @@ function setupZoomPanHandlers(): void {
   zoomInBtn.addEventListener('click', zoomIn);
   zoomOutBtn.addEventListener('click', zoomOut);
   zoomFitBtn.addEventListener('click', fitToView);
-  
-  canvasContainer.addEventListener('wheel', function(e: WheelEvent) {
+
+  canvasContainer.addEventListener('wheel', function (e: WheelEvent) {
     e.preventDefault();
-    
+
     if (e.ctrlKey || e.metaKey) {
       var rect = canvasContainer.getBoundingClientRect();
       var cursorX = e.clientX - rect.left - rect.width / 2;
       var cursorY = e.clientY - rect.top - rect.height / 2;
-      
+
       var zoomFactor = 0.01;
       var delta = -e.deltaY * zoomFactor;
       var oldZoom = zoom;
-      
+
       zoom = zoom * (1 + delta);
       zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
-      
+
       var zoomRatio = zoom / oldZoom;
       panX = cursorX - (cursorX - panX) * zoomRatio;
       panY = cursorY - (cursorY - panY) * zoomRatio;
-      
+
       updateZoomDisplay();
       updateCanvasTransform();
     } else {
@@ -321,8 +324,8 @@ function setupZoomPanHandlers(): void {
       updateCanvasTransform();
     }
   });
-  
-  canvasContainer.addEventListener('mousedown', function(e: MouseEvent) {
+
+  canvasContainer.addEventListener('mousedown', function (e: MouseEvent) {
     if (e.button === 0) {
       isPanning = true;
       lastMouseX = e.clientX;
@@ -330,8 +333,8 @@ function setupZoomPanHandlers(): void {
       canvasContainer.style.cursor = 'grabbing';
     }
   });
-  
-  document.addEventListener('mousemove', function(e: MouseEvent) {
+
+  document.addEventListener('mousemove', function (e: MouseEvent) {
     if (isPanning) {
       const dx = e.clientX - lastMouseX;
       const dy = e.clientY - lastMouseY;
@@ -342,8 +345,8 @@ function setupZoomPanHandlers(): void {
       updateCanvasTransform();
     }
   });
-  
-  document.addEventListener('mouseup', function() {
+
+  document.addEventListener('mouseup', function () {
     if (isPanning) {
       isPanning = false;
       canvasContainer.style.cursor = 'grab';
@@ -352,7 +355,7 @@ function setupZoomPanHandlers(): void {
 }
 
 function setupResizeObserver(): void {
-  const resizeObserver = new ResizeObserver(function() {
+  const resizeObserver = new ResizeObserver(function () {
     if (renderer.isImageLoaded) {
       updateCanvasTransform();
     }
@@ -364,8 +367,8 @@ function setupWindowResize(): void {
   // Initialize current size
   startWidth = window.innerWidth;
   startHeight = window.innerHeight;
-  
-  resizeHandle.addEventListener('mousedown', function(e: MouseEvent) {
+
+  resizeHandle.addEventListener('mousedown', function (e: MouseEvent) {
     e.preventDefault();
     isResizing = true;
     startMouseX = e.screenX;
@@ -375,16 +378,16 @@ function setupWindowResize(): void {
     document.body.style.cursor = 'nwse-resize';
     document.body.style.userSelect = 'none';
   });
-  
-  document.addEventListener('mousemove', function(e: MouseEvent) {
+
+  document.addEventListener('mousemove', function (e: MouseEvent) {
     if (!isResizing) return;
-    
+
     const deltaX = e.screenX - startMouseX;
     const deltaY = e.screenY - startMouseY;
-    
+
     const newWidth = Math.max(MIN_WIDTH, startWidth + deltaX);
     const newHeight = Math.max(MIN_HEIGHT, startHeight + deltaY);
-    
+
     parent.postMessage({
       pluginMessage: {
         type: 'resize',
@@ -393,8 +396,8 @@ function setupWindowResize(): void {
       }
     }, '*');
   });
-  
-  document.addEventListener('mouseup', function() {
+
+  document.addEventListener('mouseup', function () {
     if (isResizing) {
       isResizing = false;
       document.body.style.cursor = '';
@@ -416,18 +419,20 @@ function hideAbout(): void {
 
 function init(): void {
   if (!renderer.init()) {
-    showMessage('WebGL not supported', 'This plugin requires WebGL. Please try a different browser.');
+    showMessage(t('msg.webglNotSupported'), t('msg.webglDesc'), 'msg.webglNotSupported', 'msg.webglDesc');
     return;
   }
+
+  initI18n();
 
   setupControls(render);
   setupPresets();
   setupZoomPanHandlers();
   setupResizeObserver();
   setupWindowResize();
-  
+
   // Close modal when clicking overlay
-  aboutModal.addEventListener('click', function(e: MouseEvent) {
+  aboutModal.addEventListener('click', function (e: MouseEvent) {
     if (e.target === aboutModal) {
       hideAbout();
     }
@@ -435,15 +440,16 @@ function init(): void {
 
   (window as any).applyHalftone = applyHalftone;
   (window as any).cancel = cancel;
-  (window as any).resetDefaults = function() {
+  (window as any).resetDefaults = function () {
     resetDefaults(render);
     presetSelect.value = '__default__';
     deletePresetBtn.disabled = true;
   };
   (window as any).showAbout = showAbout;
   (window as any).hideAbout = hideAbout;
+  (window as any).toggleLanguage = toggleLanguage;
 
-  window.onmessage = function(event: MessageEvent) {
+  window.onmessage = function (event: MessageEvent) {
     const msg = event.data.pluginMessage;
     if (msg) handleMessage(msg);
   };
